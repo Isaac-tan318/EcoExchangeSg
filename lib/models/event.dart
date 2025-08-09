@@ -7,6 +7,7 @@ class Event {
   final DateTime? endDateTime;
   final String? authorId;
   final DateTime? createdAt;
+  final String? imageBase64;
 
   Event({
     this.id,
@@ -17,5 +18,6 @@ class Event {
     this.endDateTime,
     this.authorId,
     this.createdAt,
+    this.imageBase64,
   });
 }

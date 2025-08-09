@@ -106,9 +106,9 @@ class _CreatePostState extends State<CreatePost> {
       final bytes = await picked.readAsBytes();
       setState(() => _imageBase64 = base64Encode(bytes));
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to pick image: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to pick image: $e')));
     }
   }
 
@@ -167,7 +167,10 @@ class _CreatePostState extends State<CreatePost> {
           icon: CircleAvatar(
             backgroundColor: scheme.onPrimaryContainer,
             radius: 14,
-            child: CircleAvatar(radius: 12, child: Icon(Icons.add_photo_alternate)),
+            child: CircleAvatar(
+              radius: 12,
+              child: Icon(Icons.add_photo_alternate),
+            ),
           ),
           label: Text(_imageBase64 == null ? "Add Image" : "Change Image"),
         ),
@@ -179,7 +182,7 @@ class _CreatePostState extends State<CreatePost> {
         formKey: _formKey,
         titleController: _titleCtrl,
         descriptionController: _descCtrl,
-  imageBase64: _imageBase64,
+        imageBase64: _imageBase64,
       ),
     );
   }

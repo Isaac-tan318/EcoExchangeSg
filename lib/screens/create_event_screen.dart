@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_application_1/models/event.dart';
 import 'package:flutter_application_1/services/firebase_service.dart';
 import 'package:get_it/get_it.dart';
+import 'dart:convert';
+import 'package:image_picker/image_picker.dart';
 
 class CreateEventScreen extends StatefulWidget {
   const CreateEventScreen({super.key});
@@ -23,6 +25,8 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
   bool _submitting = false;
   bool _isOrganiser = false;
   bool _loadingRole = true;
+  String? _imageBase64;
+  final ImagePicker _picker = ImagePicker();
 
   @override
   void initState() {
@@ -92,6 +96,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
           location: _locCtrl.text.trim(),
           startDateTime: _start,
           endDateTime: _end,
+          imageBase64: _imageBase64,
         ),
       );
       if (!mounted) return;
@@ -132,6 +137,19 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                     (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
               ),
               const SizedBox(height: 12),
+              if ((_imageBase64 ?? '').isNotEmpty) ...[
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: AspectRatio(
+                    aspectRatio: 1,
+                    child: Image.memory(
+                      const Base64Decoder().convert(_imageBase64!),
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+              ],
               TextFormField(
                 controller: _descCtrl,
                 maxLines: 4,
@@ -169,6 +187,33 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                     ),
                   ),
                 ],
+              ),
+              const SizedBox(height: 12),
+              Align(
+                alignment: Alignment.center,
+                child: ElevatedButton.icon(
+                  onPressed: () async {
+                    try {
+                      final XFile? picked = await _picker.pickImage(
+                        source: ImageSource.gallery,
+                        imageQuality: 85,
+                        maxWidth: 2000,
+                        maxHeight: 2000,
+                      );
+                      if (picked == null) return;
+                      final bytes = await picked.readAsBytes();
+                      setState(() => _imageBase64 = base64Encode(bytes));
+                    } catch (e) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Failed to pick image: $e')),
+                      );
+                    }
+                  },
+                  icon: const Icon(Icons.add_photo_alternate),
+                  label: Text(
+                    (_imageBase64 ?? '').isEmpty ? 'Add Image' : 'Change Image',
+                  ),
+                ),
               ),
               const SizedBox(height: 20),
               ElevatedButton.icon(

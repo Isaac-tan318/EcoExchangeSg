@@ -4,6 +4,7 @@ import 'package:flutter_application_1/screens/create_event_screen.dart';
 import 'package:flutter_application_1/screens/edit_event_screen.dart';
 import 'package:flutter_application_1/services/firebase_service.dart';
 import 'package:get_it/get_it.dart';
+import 'package:flutter_application_1/widgets/event_widget.dart';
 
 class EventsScreen extends StatefulWidget {
   const EventsScreen({super.key});
@@ -36,9 +37,9 @@ class _EventsScreenState extends State<EventsScreen> {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final texttheme = Theme.of(context).textTheme;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Events')),
       body: StreamBuilder<List<Event>>(
         stream: _svc.getEventsAsStream(),
         builder: (context, snapshot) {
@@ -49,23 +50,30 @@ class _EventsScreenState extends State<EventsScreen> {
             return Center(child: Text('Error: ${snapshot.error}'));
           }
           final events = snapshot.data ?? [];
-          if (events.isEmpty) {
-            return const Center(child: Text('No events yet'));
-          }
-          return ListView.separated(
-            itemCount: events.length,
-            separatorBuilder: (_, __) => const Divider(height: 1),
+          return ListView.builder(
+            itemCount: (events.isEmpty ? 1 : events.length) + 1,
             itemBuilder: (context, index) {
-              final e = events[index];
-              return ListTile(
-                title: Text(e.title ?? 'Untitled'),
-                subtitle: Text(
-                  [
-                    if (e.location != null) e.location!,
-                    if (e.startDateTime != null)
-                      '${e.startDateTime}'.replaceFirst('.000', ''),
-                  ].join(' • '),
-                ),
+              if (index == 0) {
+                return Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
+                  child: Text(
+                    'Upcoming Events',
+                    style: texttheme.headlineMedium?.copyWith(
+                      color: scheme.onSurface,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                );
+              }
+              if (events.isEmpty) {
+                return const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 40),
+                  child: Center(child: Text('No events yet')),
+                );
+              }
+              final e = events[index - 1];
+              return EventWidget(
+                event: e,
                 trailing:
                     _isOrganiser
                         ? PopupMenuButton<String>(

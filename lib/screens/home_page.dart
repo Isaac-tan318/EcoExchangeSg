@@ -49,7 +49,23 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
       ),
-      null,
+      AppBar(
+        backgroundColor: scheme.primary,
+        foregroundColor: scheme.onPrimary,
+        title: Text(
+          "Events",
+          style: TextStyle(
+            fontWeight: FontWeight.w500,
+            fontSize: texttheme.headlineMedium!.fontSize,
+          ),
+        ),
+        leading: Container(
+          padding: EdgeInsets.fromLTRB(10, 0, 0, 0),
+          child: Center(
+            child: Image.asset("assets/images/logo.png", width: 35, height: 35),
+          ),
+        ),
+      ),
       null,
     ];
 

@@ -505,7 +505,7 @@ class FirebaseService {
               : (posterVal?.toString() ?? 'Unknown User'),
       authorId: map['authorId'],
       date_posted: postedAt ?? DateTime.now(),
-  imageBase64: map['imageBase64'] as String?,
+      imageBase64: map['imageBase64'] as String?,
     );
   }
 
@@ -532,6 +532,7 @@ class FirebaseService {
           (map['createdAt'] is Timestamp)
               ? (map['createdAt'] as Timestamp).toDate()
               : null,
+  imageBase64: map['imageBase64'] as String?,
     );
   }
 
@@ -557,6 +558,8 @@ class FirebaseService {
       'endDateTime': Timestamp.fromDate(event.endDateTime!),
       'authorId': user.uid,
       'createdAt': FieldValue.serverTimestamp(),
+      if (event.imageBase64 != null && event.imageBase64!.isNotEmpty)
+        'imageBase64': event.imageBase64,
     });
     return docRef.id;
   }

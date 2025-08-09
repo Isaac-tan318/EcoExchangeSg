@@ -17,12 +17,19 @@ import 'package:flutter_application_1/screens/edit_event_screen.dart';
 import 'package:flutter_application_1/models/post.dart';
 import 'package:flutter_application_1/screens/post_details_screen.dart';
 import 'package:flutter_application_1/services/firebase_service.dart';
+import 'package:flutter_application_1/services/notification_service.dart';
+import 'package:flutter_application_1/services/connectivity_service.dart';
+import 'package:flutter_application_1/widgets/offline_banner.dart';
 import 'package:get_it/get_it.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   GetIt.instance.registerLazySingleton(() => FirebaseService());
+  GetIt.instance.registerLazySingleton(() => NotificationService());
+  GetIt.instance.registerLazySingleton(() => ConnectivityService());
+  // Start mobile local notifications for new events (no-op on web)
+  await GetIt.instance<NotificationService>().startListeningForNewEvents();
   runApp(const MyApp());
 }
 
@@ -45,6 +52,14 @@ class MyApp extends StatelessWidget {
           labelLarge: TextStyle(fontSize: 18),
         ),
       ),
+      builder: (context, child) {
+        return Stack(
+          children: [
+            if (child != null) child,
+            const OfflineBannerOverlay(),
+          ],
+        );
+      },
       home: LoginScreen(),
       routes: {
         LoginScreen.routeName: (_) => LoginScreen(),

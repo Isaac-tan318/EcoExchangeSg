@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_application_1/models/event.dart';
 import 'package:flutter_application_1/services/firebase_service.dart';
 import 'package:get_it/get_it.dart';
+import 'package:flutter_application_1/services/connectivity_service.dart';
 
 class EditEventScreen extends StatefulWidget {
   const EditEventScreen({super.key});
@@ -21,11 +22,17 @@ class _EditEventScreenState extends State<EditEventScreen> {
   DateTime? _start;
   DateTime? _end;
   bool _saving = false;
+  bool _online = true;
   late Event _event;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    // Subscribe to connectivity changes
+    GetIt.instance<ConnectivityService>().isOnline$.listen((isOnline) {
+      if (!mounted) return;
+      setState(() => _online = isOnline);
+    });
     final args = ModalRoute.of(context)!.settings.arguments;
     if (args is Event) {
       _event = args;
@@ -74,6 +81,12 @@ class _EditEventScreenState extends State<EditEventScreen> {
   }
 
   Future<void> _save() async {
+    if (!_online) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('You are offline. Please reconnect to save.')),
+      );
+      return;
+    }
     if (!_formKey.currentState!.validate()) return;
     setState(() => _saving = true);
     try {
@@ -155,7 +168,7 @@ class _EditEventScreenState extends State<EditEventScreen> {
               ),
               const SizedBox(height: 20),
               ElevatedButton.icon(
-                onPressed: _saving ? null : _save,
+                onPressed: _saving || !_online ? null : _save,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: scheme.primary,
                   foregroundColor: scheme.onPrimary,

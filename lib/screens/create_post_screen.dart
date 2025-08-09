@@ -7,6 +7,7 @@ import 'package:flutter_application_1/widgets/post_form.dart';
 import 'package:get_it/get_it.dart';
 import 'dart:convert';
 import 'package:image_picker/image_picker.dart';
+import 'package:flutter_application_1/services/connectivity_service.dart';
 
 class CreatePost extends StatefulWidget {
   static var routeName = "/createPost";
@@ -24,12 +25,18 @@ class _CreatePostState extends State<CreatePost> {
   bool _submitting = false;
   String? _imageBase64;
   final ImagePicker _picker = ImagePicker();
+  bool _online = true;
 
   final FirebaseService firebaseService = GetIt.instance<FirebaseService>();
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    // Subscribe to connectivity changes
+    GetIt.instance<ConnectivityService>().isOnline$.listen((isOnline) {
+      if (!mounted) return;
+      setState(() => _online = isOnline);
+    });
     final args = ModalRoute.of(context)?.settings.arguments;
     if (args is Map<String, dynamic>) {
       final initialTitle = (args['initialTitle'] ?? '') as String;
@@ -65,6 +72,12 @@ class _CreatePostState extends State<CreatePost> {
   }
 
   Future<void> _submit(BuildContext context) async {
+    if (!_online) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('You are offline. Please reconnect to post.')),
+      );
+      return;
+    }
     final nav = Navigator.of(context);
     if (!_formKey.currentState!.validate()) return;
 
@@ -131,7 +144,7 @@ class _CreatePostState extends State<CreatePost> {
         ),
         actions: [
           ElevatedButton(
-            onPressed: _submitting ? null : () => _submit(context),
+            onPressed: _submitting || !_online ? null : () => _submit(context),
             style: ElevatedButton.styleFrom(
               backgroundColor: scheme.tertiaryContainer,
               foregroundColor: scheme.onTertiaryContainer,

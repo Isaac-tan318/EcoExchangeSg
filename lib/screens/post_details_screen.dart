@@ -4,6 +4,8 @@ import 'package:flutter_application_1/services/firebase_service.dart';
 import 'package:get_it/get_it.dart';
 import 'package:flutter_application_1/screens/edit_post_screen.dart';
 import 'dart:convert';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 class PostDetailsScreen extends StatefulWidget {
   static const routeName = '/postDetails';
@@ -17,6 +19,53 @@ class PostDetailsScreen extends StatefulWidget {
 
 class _PostDetailsScreenState extends State<PostDetailsScreen> {
   bool _deleting = false;
+
+  Future<void> _reportPost(Post post) async {
+    final subject = Uri.encodeComponent('[Report] Post ${post.title ?? ''}');
+    final body = Uri.encodeComponent(
+      'Post ID: ${post.id ?? widget.postId}\n'
+      'Title: ${post.title ?? ''}\n'
+      'Author: ${post.poster ?? ''}\n\n'
+      'Reason: ',
+    );
+    const toEmail = 'ecohubsg1@gmail.com';
+
+    if (kIsWeb) {
+      final gmailUrl = Uri.parse(
+        'https://mail.google.com/mail/?view=cm&fs=1&to=$toEmail&su=$subject&body=$body',
+      );
+      final ok = await launchUrl(
+        gmailUrl,
+        mode: LaunchMode.externalApplication,
+      );
+      if (!ok && mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Could not open Gmail.')));
+      }
+      return;
+    }
+
+    // different uris used by different devices
+    final gmailUris = <Uri>[
+      Uri.parse('gmail://co?to=$toEmail&subject=$subject&body=$body'),
+      Uri.parse('googlegmail://co?to=$toEmail&subject=$subject&body=$body'),
+    ];
+    for (final u in gmailUris) {
+      final canOpen = await canLaunchUrl(u);
+      if (canOpen) {
+        final ok = await launchUrl(u, mode: LaunchMode.externalApplication);
+        if (ok) return;
+      }
+    }
+    final mailtoUri = Uri.parse('mailto:$toEmail?subject=$subject&body=$body');
+    final ok = await launchUrl(mailtoUri, mode: LaunchMode.externalApplication);
+    if (!ok && mounted) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('No email app available.')));
+    }
+  }
 
   String _relativeTime(DateTime date) {
     final now = DateTime.now();
@@ -32,28 +81,47 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
     final texttheme = Theme.of(context).textTheme;
     final service = GetIt.instance<FirebaseService>();
 
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: scheme.primary,
-        foregroundColor: scheme.onPrimary,
-        title: const Text('Post Details'),
-      ),
-      body: FutureBuilder<Post?>(
-        future: service.getPost(widget.postId),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (snapshot.hasError) {
-            return Center(child: Text('Failed to load: ${snapshot.error}'));
-          }
-          final post = snapshot.data;
-          if (post == null) {
-            return const Center(child: Text('Post not found'));
-          }
+    return FutureBuilder<Post?>(
+      future: service.getPost(widget.postId),
+      builder: (context, snapshot) {
+        final appBar = AppBar(
+          backgroundColor: scheme.primary,
+          foregroundColor: scheme.onPrimary,
+          title: const Text('Post Details'),
+          actions: [
+            if (snapshot.connectionState == ConnectionState.done &&
+                snapshot.data != null)
+              IconButton(
+                tooltip: 'Report',
+                icon: const Icon(Icons.flag_outlined),
+                onPressed: () => _reportPost(snapshot.data!),
+              ),
+          ],
+        );
 
-          // Directly show the poster's username stored on the post
-          return SingleChildScrollView(
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Scaffold(
+            appBar: appBar,
+            body: const Center(child: CircularProgressIndicator()),
+          );
+        }
+        if (snapshot.hasError) {
+          return Scaffold(
+            appBar: appBar,
+            body: Center(child: Text('Failed to load: ${snapshot.error}')),
+          );
+        }
+        final post = snapshot.data;
+        if (post == null) {
+          return Scaffold(
+            appBar: appBar,
+            body: const Center(child: Text('Post not found')),
+          );
+        }
+
+        return Scaffold(
+          appBar: appBar,
+          body: SingleChildScrollView(
             padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -204,9 +272,9 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
                 ),
               ],
             ),
-          );
-        },
-      ),
+          ),
+        );
+      },
     );
   }
 }

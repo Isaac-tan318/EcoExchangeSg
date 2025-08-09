@@ -3,6 +3,7 @@ import 'package:flutter_application_1/models/post.dart';
 import 'package:flutter_application_1/services/firebase_service.dart';
 import 'package:get_it/get_it.dart';
 import 'package:flutter_application_1/screens/edit_post_screen.dart';
+import 'dart:convert';
 
 class PostDetailsScreen extends StatefulWidget {
   static const routeName = '/postDetails';
@@ -184,6 +185,19 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
                   ],
                 ),
                 const SizedBox(height: 16),
+                if ((post.imageBase64 ?? '').isNotEmpty) ...[
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: AspectRatio(
+                      aspectRatio: 1,
+                      child: Image.memory(
+                        const Base64Decoder().convert(post.imageBase64!),
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
                 Text(
                   post.description?.toString() ?? '',
                   style: TextStyle(fontSize: texttheme.bodyLarge!.fontSize),

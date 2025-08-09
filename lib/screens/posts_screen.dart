@@ -18,6 +18,32 @@ class PostsScreen extends StatefulWidget {
 class _PostsScreenState extends State<PostsScreen> {
   final FirebaseService firebaseService = GetIt.instance<FirebaseService>();
   String _sort = 'New';
+  String _timeFilter = 'All time';
+  DateTime? _start;
+  DateTime? _end;
+
+  String _fmt(DateTime d) {
+    final day = d.day.toString().padLeft(2, '0');
+    final m = d.month.toString().padLeft(2, '0');
+    final y = d.year.toString().padLeft(4, '0');
+    return '$day/$m/$y';
+  }
+
+  String _timeLabel() {
+    switch (_timeFilter) {
+      case 'after date':
+        return _start != null ? 'After ${_fmt(_start!)}' : 'After: —';
+      case 'before date':
+        return _end != null ? 'Before ${_fmt(_end!)}' : 'Before: —';
+      case 'from date to date':
+        if (_start != null && _end != null) {
+          return 'From ${_fmt(_start!)} to ${_fmt(_end!)}';
+        }
+        return 'From: — to —';
+      default:
+        return 'All time';
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -96,6 +122,7 @@ class _PostsScreenState extends State<PostsScreen> {
                 },
                 dropdownMenuEntries: const [
                   DropdownMenuEntry(value: 'New', label: 'New'),
+                  DropdownMenuEntry(value: 'Oldest', label: 'Oldest'),
                 ],
               ),
 
@@ -117,8 +144,95 @@ class _PostsScreenState extends State<PostsScreen> {
                 ),
 
                 hintText: 'Time',
-                onSelected: (value) {
-                  print('Selected: $value');
+                initialSelection: _timeFilter,
+                onSelected: (value) async {
+                  if (value == null) return;
+                  if (value == 'after date') {
+                    final picked = await showDatePicker(
+                      context: context,
+                      initialDate: _start ?? DateTime.now(),
+                      firstDate: DateTime(2000),
+                      lastDate: DateTime(2100),
+                    );
+                    if (picked != null) {
+                      setState(() {
+                        _timeFilter = value;
+                        _start = DateTime(
+                          picked.year,
+                          picked.month,
+                          picked.day,
+                        );
+                        _end = null;
+                      });
+                    }
+                  } else if (value == 'before date') {
+                    final picked = await showDatePicker(
+                      context: context,
+                      initialDate: _end ?? DateTime.now(),
+                      firstDate: DateTime(2000),
+                      lastDate: DateTime(2100),
+                    );
+                    if (picked != null) {
+                      setState(() {
+                        _timeFilter = value;
+                        _end = DateTime(
+                          picked.year,
+                          picked.month,
+                          picked.day,
+                          23,
+                          59,
+                          59,
+                          999,
+                        );
+                        _start = null;
+                      });
+                    }
+                  } else if (value == 'from date to date') {
+                    final startPicked = await showDatePicker(
+                      context: context,
+                      initialDate: _start ?? DateTime.now(),
+                      firstDate: DateTime(2000),
+                      lastDate: DateTime(2100),
+                      helpText: 'Select start date',
+                      confirmText: 'Next',
+                      cancelText: 'Cancel',
+                    );
+                    if (startPicked == null) return;
+                    final endPicked = await showDatePicker(
+                      context: context,
+                      initialDate: _end ?? startPicked,
+                      firstDate: startPicked,
+                      lastDate: DateTime(2100),
+                      helpText: 'Select end date',
+                      confirmText: 'Apply',
+                      cancelText: 'Back',
+                    );
+                    if (endPicked != null) {
+                      setState(() {
+                        _timeFilter = value;
+                        _start = DateTime(
+                          startPicked.year,
+                          startPicked.month,
+                          startPicked.day,
+                        );
+                        _end = DateTime(
+                          endPicked.year,
+                          endPicked.month,
+                          endPicked.day,
+                          23,
+                          59,
+                          59,
+                          999,
+                        );
+                      });
+                    }
+                  } else {
+                    setState(() {
+                      _timeFilter = 'All time';
+                      _start = null;
+                      _end = null;
+                    });
+                  }
                 },
                 dropdownMenuEntries: const [
                   DropdownMenuEntry(value: 'All time', label: 'All time'),
@@ -126,7 +240,7 @@ class _PostsScreenState extends State<PostsScreen> {
                   DropdownMenuEntry(value: 'before date', label: 'before date'),
                   DropdownMenuEntry(
                     value: 'from date to date',
-                    label: 'from date to date',
+                    label: 'Date range (start to end)',
                   ),
                 ],
               ),
@@ -134,10 +248,28 @@ class _PostsScreenState extends State<PostsScreen> {
           ),
         ),
 
+        // Selected time summary
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              _timeLabel(),
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+        ),
+
         // show posts
         Expanded(
           child: StreamBuilder<List<Post>>(
-            stream: firebaseService.getAllPostsAsStream(),
+            stream: firebaseService.getAllPostsAsStream(
+              descending: _sort == 'New',
+              startDate: _start,
+              endDate: _end,
+            ),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Center(child: CircularProgressIndicator());
@@ -146,13 +278,7 @@ class _PostsScreenState extends State<PostsScreen> {
                 return Center(child: Text('Error: ${snapshot.error}'));
               }
               List<Post> posts = List.of(snapshot.data ?? []);
-              // Apply client-side sorting for now
-              // Only sort by New now
-              posts.sort(
-                (a, b) => (b.date_posted as DateTime).compareTo(
-                  a.date_posted as DateTime,
-                ),
-              );
+              // client-side only if author filter is used elsewhere
               if (posts.isEmpty) {
                 return const Center(child: Text('No posts yet'));
               }

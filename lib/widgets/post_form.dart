@@ -1,16 +1,19 @@
 import 'package:flutter/material.dart';
+import 'dart:convert';
 import 'package:flutter_application_1/widgets/textfield.dart';
 
 class PostForm extends StatelessWidget {
   final GlobalKey<FormState> formKey;
   final TextEditingController titleController;
   final TextEditingController descriptionController;
+  final String? imageBase64;
 
   const PostForm({
     super.key,
     required this.formKey,
     required this.titleController,
     required this.descriptionController,
+    this.imageBase64,
   });
 
   @override
@@ -52,6 +55,20 @@ class PostForm extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 10),
+            if (imageBase64 != null && imageBase64!.isNotEmpty) ...[
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: AspectRatio(
+                  aspectRatio: 1,
+                  child: Image.memory(
+                    // Base64 decode
+                    const Base64Decoder().convert(imageBase64!),
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+            ],
             BorderlessField(
               child: TextFormField(
                 controller: descriptionController,

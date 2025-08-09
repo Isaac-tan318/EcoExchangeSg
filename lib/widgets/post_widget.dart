@@ -4,6 +4,7 @@ import 'package:flutter_application_1/screens/edit_post_screen.dart';
 import 'package:flutter_application_1/screens/post_details_screen.dart';
 import 'package:flutter_application_1/services/firebase_service.dart';
 import 'package:get_it/get_it.dart';
+import 'dart:convert';
 
 String _relativeTime(DateTime date) {
   final now = DateTime.now();
@@ -48,6 +49,19 @@ class PostWidget extends StatelessWidget {
               ),
             ),
             SizedBox(height: 15),
+            if ((post.imageBase64 ?? '').isNotEmpty) ...[
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: AspectRatio(
+                  aspectRatio: 1,
+                  child: Image.memory(
+                    const Base64Decoder().convert(post.imageBase64!),
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              ),
+              SizedBox(height: 15),
+            ],
             Text(
               post.description?.toString() ?? '',
               style: TextStyle(fontSize: texttheme.bodyLarge!.fontSize),
@@ -206,6 +220,19 @@ class _UserPostWidgetState extends State<UserPostWidget> {
               ],
             ),
             SizedBox(height: 15),
+            if ((widget.post.imageBase64 ?? '').isNotEmpty) ...[
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: AspectRatio(
+                  aspectRatio: 1,
+                  child: Image.memory(
+                    const Base64Decoder().convert(widget.post.imageBase64!),
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              ),
+              SizedBox(height: 15),
+            ],
             Text(
               widget.post.description?.toString() ?? '',
               style: TextStyle(fontSize: texttheme.bodyLarge!.fontSize),

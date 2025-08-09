@@ -12,6 +12,8 @@ import 'package:flutter_application_1/screens/create_post_screen.dart';
 import 'package:flutter_application_1/screens/edit_information_screen.dart';
 import 'package:flutter_application_1/screens/edit_post_screen.dart';
 import 'package:flutter_application_1/screens/home_page.dart';
+import 'package:flutter_application_1/screens/create_event_screen.dart';
+import 'package:flutter_application_1/screens/edit_event_screen.dart';
 import 'package:flutter_application_1/models/post.dart';
 import 'package:flutter_application_1/screens/post_details_screen.dart';
 import 'package:flutter_application_1/services/firebase_service.dart';
@@ -49,6 +51,8 @@ class MyApp extends StatelessWidget {
         SignupScreen.routeName: (_) => SignupScreen(),
         HomeScreen.routeName: (_) => HomeScreen(),
         CreatePost.routeName: (_) => CreatePost(),
+        CreateEventScreen.routeName: (_) => const CreateEventScreen(),
+        EditEventScreen.routeName: (_) => const EditEventScreen(),
         ForgotPasswordScreen.routeName: (_) => ForgotPasswordScreen(),
         OrganisationLoginScreen.routeName: (_) => OrganisationLoginScreen(),
         OrganisationSignupScreen.routeName: (_) => OrganisationSignupScreen(),

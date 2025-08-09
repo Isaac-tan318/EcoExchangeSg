@@ -5,6 +5,8 @@ import 'package:flutter_application_1/models/post.dart';
 import 'package:flutter_application_1/services/firebase_service.dart';
 import 'package:flutter_application_1/widgets/post_form.dart';
 import 'package:get_it/get_it.dart';
+import 'dart:convert';
+import 'package:image_picker/image_picker.dart';
 
 class CreatePost extends StatefulWidget {
   static var routeName = "/createPost";
@@ -20,6 +22,8 @@ class _CreatePostState extends State<CreatePost> {
   final _titleCtrl = TextEditingController();
   final _descCtrl = TextEditingController();
   bool _submitting = false;
+  String? _imageBase64;
+  final ImagePicker _picker = ImagePicker();
 
   final FirebaseService firebaseService = GetIt.instance<FirebaseService>();
 
@@ -67,8 +71,11 @@ class _CreatePostState extends State<CreatePost> {
     setState(() => _submitting = true);
     try {
       await firebaseService.createPost(
-        // Using the simple Post model shape in this project
-        Post(title: _titleCtrl.text.trim(), description: _descCtrl.text.trim()),
+        Post(
+          title: _titleCtrl.text.trim(),
+          description: _descCtrl.text.trim(),
+          imageBase64: _imageBase64,
+        ),
       );
       if (mounted) {
         ScaffoldMessenger.of(
@@ -84,6 +91,24 @@ class _CreatePostState extends State<CreatePost> {
       }
     } finally {
       if (mounted) setState(() => _submitting = false);
+    }
+  }
+
+  Future<void> _pickImage() async {
+    try {
+      final XFile? picked = await _picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 85,
+        maxWidth: 2000,
+        maxHeight: 2000,
+      );
+      if (picked == null) return;
+      final bytes = await picked.readAsBytes();
+      setState(() => _imageBase64 = base64Encode(bytes));
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to pick image: $e')),
+      );
     }
   }
 
@@ -133,8 +158,7 @@ class _CreatePostState extends State<CreatePost> {
       floatingActionButton: Padding(
         padding: EdgeInsets.only(bottom: 15),
         child: ElevatedButton.icon(
-          onPressed: () {},
-
+          onPressed: _pickImage,
           style: ElevatedButton.styleFrom(
             backgroundColor: scheme.primaryContainer,
             foregroundColor: scheme.onPrimaryContainer,
@@ -143,10 +167,9 @@ class _CreatePostState extends State<CreatePost> {
           icon: CircleAvatar(
             backgroundColor: scheme.onPrimaryContainer,
             radius: 14,
-            child: CircleAvatar(radius: 12, child: Icon(Icons.add)),
+            child: CircleAvatar(radius: 12, child: Icon(Icons.add_photo_alternate)),
           ),
-
-          label: Text("Add Image"),
+          label: Text(_imageBase64 == null ? "Add Image" : "Change Image"),
         ),
       ),
 
@@ -156,6 +179,7 @@ class _CreatePostState extends State<CreatePost> {
         formKey: _formKey,
         titleController: _titleCtrl,
         descriptionController: _descCtrl,
+  imageBase64: _imageBase64,
       ),
     );
   }

@@ -4,12 +4,16 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:flutter_application_1/models/user.dart' as UserModel;
+import 'package:flutter_application_1/models/event.dart' as EventModel;
 import 'package:flutter_application_1/models/post.dart';
 
 class FirebaseService {
   // Firestore collection for posts
   final CollectionReference<Map<String, dynamic>> _postsCollection =
       FirebaseFirestore.instance.collection('posts');
+  // Firestore collection for events
+  final CollectionReference<Map<String, dynamic>> _eventsCollection =
+      FirebaseFirestore.instance.collection('events');
 
   // register user and add user data to firestore
   Future<UserCredential> register(
@@ -102,6 +106,27 @@ class FirebaseService {
 
   User? getCurrentUser() {
     return FirebaseAuth.instance.currentUser;
+  }
+
+  // Role helpers
+  Future<String?> _getCurrentUserRole() async {
+    final user = getCurrentUser();
+    if (user == null) return null;
+    try {
+      final snap =
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(user.uid)
+              .get();
+      return snap.data()?['role'] as String?;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<bool> isCurrentUserOrganiser() async {
+    final role = await _getCurrentUserRole();
+    return role == 'organiser' || role == 'organizer';
   }
 
   // Gets current user's info, if not supplies default information
@@ -353,6 +378,8 @@ class FirebaseService {
       'poster': post.poster ?? posterName,
       'authorId': user.uid,
       'date_posted': FieldValue.serverTimestamp(),
+      if (post.imageBase64 != null && post.imageBase64!.isNotEmpty)
+        'imageBase64': post.imageBase64,
     };
 
     await docRef.set(data);
@@ -368,24 +395,64 @@ class FirebaseService {
     return _postFromMap({...data, 'id': snap.id});
   }
 
-  // Stream posts, Newest posts are first by date_posted.
-  Stream<List<Post>> getAllPostsAsStream({String? authorId}) {
+  // Stream posts with optional ordering and date range filtering
+  // If authorId is provided, we avoid composite indexes by sorting/filtering on client.
+  Stream<List<Post>> getAllPostsAsStream({
+    String? authorId,
+    bool descending = true,
+    DateTime? startDate,
+    DateTime? endDate,
+  }) {
     Query<Map<String, dynamic>> q = _postsCollection;
     bool sortClient = false;
+    bool filterClient = false;
+
     if (authorId != null) {
-      // Equality filter + orderBy on another field usually requires a composite index.
-      // To avoid the index requirement for the profile view, filter server-side and sort client-side.
+      // Equality filter + orderBy on another field can require composite index.
+      // We'll filter by author server-side and handle ordering/date-range client-side to avoid index needs.
       q = q.where('authorId', isEqualTo: authorId);
       sortClient = true;
+      if (startDate != null || endDate != null) filterClient = true;
     } else {
-      // Global feed ordered by date_posted desc can use single-field index.
-      q = q.orderBy('date_posted', descending: true);
+      // Global feed
+      q = q.orderBy('date_posted', descending: descending);
+      if (startDate != null) {
+        q = q.where(
+          'date_posted',
+          isGreaterThanOrEqualTo: Timestamp.fromDate(startDate),
+        );
+      }
+      if (endDate != null) {
+        q = q.where(
+          'date_posted',
+          isLessThanOrEqualTo: Timestamp.fromDate(endDate),
+        );
+      }
     }
+
     return q.snapshots().map((s) {
-      final list =
+      var list =
           s.docs.map((d) => _postFromMap({...d.data(), 'id': d.id})).toList();
+      if (filterClient) {
+        list =
+            list.where((p) {
+              final dt =
+                  p.date_posted is DateTime
+                      ? p.date_posted as DateTime
+                      : DateTime.tryParse(p.date_posted?.toString() ?? '') ??
+                          DateTime(1970);
+              if (startDate != null && dt.isBefore(startDate)) return false;
+              if (endDate != null && dt.isAfter(endDate)) return false;
+              return true;
+            }).toList();
+      }
       if (sortClient) {
-        list.sort((a, b) => b.date_posted.compareTo(a.date_posted));
+        list.sort(
+          (a, b) =>
+              descending
+                  ? b.date_posted.compareTo(a.date_posted)
+                  : a.date_posted.compareTo(b.date_posted),
+        );
       }
       return list;
     });
@@ -438,6 +505,92 @@ class FirebaseService {
               : (posterVal?.toString() ?? 'Unknown User'),
       authorId: map['authorId'],
       date_posted: postedAt ?? DateTime.now(),
+  imageBase64: map['imageBase64'] as String?,
     );
+  }
+
+  // =========================
+  // Events CRUD
+  // =========================
+
+  EventModel.Event _eventFromMap(Map<String, dynamic> map) {
+    final startTs = map['startDateTime'];
+    final endTs = map['endDateTime'];
+    DateTime? start;
+    DateTime? end;
+    if (startTs is Timestamp) start = startTs.toDate();
+    if (endTs is Timestamp) end = endTs.toDate();
+    return EventModel.Event(
+      id: map['id'] as String?,
+      title: map['title'] as String?,
+      description: map['description'] as String?,
+      location: map['location'] as String?,
+      startDateTime: start,
+      endDateTime: end,
+      authorId: map['authorId'] as String?,
+      createdAt:
+          (map['createdAt'] is Timestamp)
+              ? (map['createdAt'] as Timestamp).toDate()
+              : null,
+    );
+  }
+
+  Future<String> createEvent(EventModel.Event event) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) throw Exception('Not authenticated');
+    final isOrg = await isCurrentUserOrganiser();
+    if (!isOrg) throw Exception('Only organisers can create events');
+
+    if (_isBlank(event.title)) throw Exception('Title is required');
+    if (_isBlank(event.description)) throw Exception('Description is required');
+    if (_isBlank(event.location)) throw Exception('Location is required');
+    if (event.startDateTime == null || event.endDateTime == null) {
+      throw Exception('Start and end date/time are required');
+    }
+
+    final docRef = _eventsCollection.doc();
+    await docRef.set({
+      'title': event.title,
+      'description': event.description,
+      'location': event.location,
+      'startDateTime': Timestamp.fromDate(event.startDateTime!),
+      'endDateTime': Timestamp.fromDate(event.endDateTime!),
+      'authorId': user.uid,
+      'createdAt': FieldValue.serverTimestamp(),
+    });
+    return docRef.id;
+  }
+
+  Stream<List<EventModel.Event>> getEventsAsStream({
+    bool orderByStartAsc = true,
+  }) {
+    Query<Map<String, dynamic>> q = _eventsCollection.orderBy(
+      'startDateTime',
+      descending: !orderByStartAsc,
+    );
+    return q.snapshots().map(
+      (s) =>
+          s.docs.map((d) => _eventFromMap({...d.data(), 'id': d.id})).toList(),
+    );
+  }
+
+  Future<void> updateEvent(String id, Map<String, dynamic> data) async {
+    if (data.isEmpty) throw Exception('No fields to update');
+    // sanitize
+    final payload = Map<String, dynamic>.from(data);
+    payload.removeWhere((k, v) => v == null);
+    if (payload.containsKey('startDateTime') &&
+        payload['startDateTime'] is DateTime) {
+      payload['startDateTime'] = Timestamp.fromDate(payload['startDateTime']);
+    }
+    if (payload.containsKey('endDateTime') &&
+        payload['endDateTime'] is DateTime) {
+      payload['endDateTime'] = Timestamp.fromDate(payload['endDateTime']);
+    }
+    await _eventsCollection.doc(id).update(payload);
+  }
+
+  Future<void> deleteEvent(String id) async {
+    await _eventsCollection.doc(id).delete();
   }
 }

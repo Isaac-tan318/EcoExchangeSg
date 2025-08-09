@@ -5,6 +5,7 @@ class Post {
   var poster;
   var authorId;
   var date_posted;
+  String? imageBase64;
 
   Post({
     this.id,
@@ -13,5 +14,6 @@ class Post {
     this.poster,
     this.authorId,
     this.date_posted,
+    this.imageBase64,
   });
 }

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_application_1/main.dart';
 import 'package:flutter_application_1/screens/auth/forgot_password_screen.dart';
 import 'package:flutter_application_1/screens/auth/organisation_login_screen.dart';
 import 'package:flutter_application_1/screens/auth/signup_screen.dart';
 import 'package:flutter_application_1/screens/home_page.dart';
 import 'package:flutter_application_1/services/firebase_service.dart';
+import 'package:flutter_application_1/services/notification_service.dart';
 import 'package:flutter_application_1/widgets/textfield.dart';
 import 'package:get_it/get_it.dart';
 
@@ -28,8 +28,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
   var form = GlobalKey<FormState>();
 
-// function called when user presses login button
-// validates fields and calls firebase
+  // function called when user presses login button
+  // validates fields and calls firebase
   void login(context) async {
     var isValid = form.currentState!.validate();
 
@@ -41,6 +41,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
       try {
         await firebaseService.login(email, password, 'user');
+        await GetIt.instance<NotificationService>()
+            .promptForPermissionsIfFirstLogin();
         Navigator.of(context).pushReplacementNamed(HomeScreen.routeName);
         ScaffoldMessenger.of(
           context,
@@ -206,6 +208,8 @@ class _LoginScreenState extends State<LoginScreen> {
                                 content: Text("Google login successful!"),
                               ),
                             );
+                            await GetIt.instance<NotificationService>()
+                                .promptForPermissionsIfFirstLogin();
                             nav.pushReplacementNamed(HomeScreen.routeName);
                           } else {
                             ScaffoldMessenger.of(context).showSnackBar(

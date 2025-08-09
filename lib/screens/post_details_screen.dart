@@ -26,7 +26,7 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
       'Post ID: ${post.id ?? widget.postId}\n'
       'Title: ${post.title ?? ''}\n'
       'Author: ${post.poster ?? ''}\n\n'
-      'Reason: ',
+      'Reason: Hello, I would like to report this post as ',
     );
     const toEmail = 'ecohubsg1@gmail.com';
 
@@ -234,7 +234,8 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
                             setState(() => _deleting = true);
                             try {
                               await service.deletePost(widget.postId);
-                              navigator.popUntil((route) => route.isFirst);
+                              // Return to the previous screen instead of the very first (Login)
+                              navigator.pop(true);
                             } catch (e) {
                               if (!mounted) return;
                               setState(() => _deleting = false);

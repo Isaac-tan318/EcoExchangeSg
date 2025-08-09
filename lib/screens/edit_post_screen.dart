@@ -51,7 +51,9 @@ class _EditPostState extends State<EditPost> {
   Future<void> _save() async {
     if (!_online) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('You are offline. Please reconnect to save.')),
+        const SnackBar(
+          content: Text('You are offline. Please reconnect to save.'),
+        ),
       );
       return;
     }
@@ -117,6 +119,7 @@ class _EditPostState extends State<EditPost> {
         formKey: _formKey,
         titleController: _titleCtrl,
         descriptionController: _descCtrl,
+        imageBase64: widget.initial.imageBase64,
       ),
     );
   }

@@ -1,11 +1,12 @@
-import 'dart:io' show Platform;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class NotificationService {
-  final FlutterLocalNotificationsPlugin _fln = FlutterLocalNotificationsPlugin();
+  final FlutterLocalNotificationsPlugin _fln =
+      FlutterLocalNotificationsPlugin();
   bool _initialized = false;
   Stream<QuerySnapshot<Map<String, dynamic>>>? _eventsStream;
   bool _primed = false;
@@ -14,25 +15,46 @@ class NotificationService {
     if (kIsWeb) return; // local notifications not supported on Flutter web
     if (_initialized) return;
 
-  const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
     const iosInit = DarwinInitializationSettings();
-    const initSettings = InitializationSettings(android: androidInit, iOS: iosInit);
-  await _fln.initialize(initSettings);
+    const initSettings = InitializationSettings(
+      android: androidInit,
+      iOS: iosInit,
+    );
+    await _fln.initialize(initSettings);
     _initialized = true;
   }
 
-  Future<void> startListeningForNewEvents() async {
+  Future<void> promptForPermissionsIfFirstLogin() async {
     if (kIsWeb) return;
     await init();
+    final prefs = await SharedPreferences.getInstance();
+    const key = 'notif_perm_prompted';
+    if (prefs.getBool(key) == true) return;
 
-    // Only listen on mobile platforms
-    if (!(Platform.isAndroid || Platform.isIOS)) return;
+    try {
+      // Unified permission request using permission_handler
+      final status = await Permission.notification.request();
+      if (status.isDenied || status.isPermanentlyDenied) {
+        // Optionally, guide users to settings
+      }
+    } catch (_) {
+      // ignore errors to avoid blocking login
+    } finally {
+      await prefs.setBool(key, true);
+    }
+  }
 
-    _eventsStream ??= FirebaseFirestore.instance
-        .collection('events')
-        .orderBy('createdAt', descending: true)
-        .limit(1)
-        .snapshots();
+  Future<void> startListeningForNewEvents() async {
+    // init is a no-op on Web; still safe to call
+    await init();
+
+    _eventsStream ??=
+        FirebaseFirestore.instance
+            .collection('events')
+            .orderBy('createdAt', descending: true)
+            .limit(1)
+            .snapshots();
 
     _eventsStream!.listen((snapshot) async {
       // On first snapshot, seed last seen without notifying
@@ -53,7 +75,18 @@ class NotificationService {
           final title = (data?['title']?.toString() ?? 'New Event');
           final desc = (data?['description']?.toString() ?? '');
           if (change.doc.id != lastId) {
-            await _showNotification(title: title, body: desc);
+            if (kIsWeb) {
+              // For Web: print to console instead of using local notifications
+              // so you can see the detection without additional setup.
+              // Example output: [New Event Detected] Title - Description
+              // ignore: avoid_print
+              print(
+                '[New Event Detected] $title - ${desc.isEmpty ? '(no description)' : desc}',
+              );
+            } else {
+              // Mobile local notification
+              await _showNotification(title: title, body: desc);
+            }
             await prefs.setString('lastNotifiedEventId', change.doc.id);
           }
         }
@@ -61,7 +94,10 @@ class NotificationService {
     });
   }
 
-  Future<void> _showNotification({required String title, required String body}) async {
+  Future<void> _showNotification({
+    required String title,
+    required String body,
+  }) async {
     const androidDetails = AndroidNotificationDetails(
       'events_channel',
       'Events',
@@ -70,7 +106,10 @@ class NotificationService {
       priority: Priority.high,
     );
     const iosDetails = DarwinNotificationDetails();
-    const details = NotificationDetails(android: androidDetails, iOS: iosDetails);
+    const details = NotificationDetails(
+      android: androidDetails,
+      iOS: iosDetails,
+    );
     await _fln.show(0, title, body, details);
   }
 }

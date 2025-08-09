@@ -25,6 +25,16 @@ class _EditEventScreenState extends State<EditEventScreen> {
   bool _online = true;
   late Event _event;
 
+  String _fmt(DateTime dt) {
+    final l = dt.toLocal();
+    final dd = l.day.toString().padLeft(2, '0');
+    final mm = l.month.toString().padLeft(2, '0');
+    final yyyy = l.year.toString().padLeft(4, '0');
+    final hh = l.hour.toString().padLeft(2, '0');
+    final min = l.minute.toString().padLeft(2, '0');
+    return '$dd/$mm/$yyyy $hh:$min';
+  }
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -83,7 +93,9 @@ class _EditEventScreenState extends State<EditEventScreen> {
   Future<void> _save() async {
     if (!_online) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('You are offline. Please reconnect to save.')),
+        const SnackBar(
+          content: Text('You are offline. Please reconnect to save.'),
+        ),
       );
       return;
     }
@@ -151,7 +163,7 @@ class _EditEventScreenState extends State<EditEventScreen> {
                       child: Text(
                         _start == null
                             ? 'Pick start'
-                            : 'Start: ${_start!.toLocal()}',
+                            : 'Start: ${_fmt(_start!)}',
                       ),
                     ),
                   ),
@@ -160,7 +172,7 @@ class _EditEventScreenState extends State<EditEventScreen> {
                     child: OutlinedButton(
                       onPressed: _pickEnd,
                       child: Text(
-                        _end == null ? 'Pick end' : 'End: ${_end!.toLocal()}',
+                        _end == null ? 'Pick end' : 'End: ${_fmt(_end!)}',
                       ),
                     ),
                   ),

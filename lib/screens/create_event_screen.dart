@@ -56,9 +56,20 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
   static String _geoapifyKey = String.fromEnvironment('GEOAPIFY_KEY');
   bool _online = true;
 
+  String _fmt(DateTime dt) {
+    final l = dt.toLocal();
+    final dd = l.day.toString().padLeft(2, '0');
+    final mm = l.month.toString().padLeft(2, '0');
+    final yyyy = l.year.toString().padLeft(4, '0');
+    final hh = l.hour.toString().padLeft(2, '0');
+    final min = l.minute.toString().padLeft(2, '0');
+    return '$dd/$mm/$yyyy $hh:$min';
+  }
+
   @override
   void initState() {
     super.initState();
+    _locFocus.addListener(_onLocFocusChanged);
     _init();
   }
 
@@ -85,12 +96,26 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
 
   @override
   void dispose() {
+    _locFocus.removeListener(_onLocFocusChanged);
     _titleCtrl.dispose();
     _descCtrl.dispose();
     _locCtrl.dispose();
     _locFocus.dispose();
     _debounce?.cancel();
     super.dispose();
+  }
+
+  void _onLocFocusChanged() {
+    if (_locFocus.hasFocus) {
+      // When the field regains focus and has input, re-kick the search debounce
+      final q = _locCtrl.text.trim();
+      if (q.length >= 3) {
+        _debounce?.cancel();
+        _debounce = Timer(const Duration(milliseconds: 10), () {
+          if (mounted) _onLocationChanged();
+        });
+      }
+    }
   }
 
   Future<void> _pickStart() async {
@@ -197,25 +222,35 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
         if (parseGeoapify) {
           final Map<String, dynamic> data = jsonDecode(res.body);
           final List feats = (data['features'] as List? ?? []);
-          suggs = feats.map((f) {
-            final props = (f['properties'] as Map?) ?? {};
-            final name = (props['formatted'] ?? props['address_line1'] ?? '') as String;
-            LatLng? pos;
-            try {
-              final geom = (f as Map)['geometry'] as Map?;
-              final coords = (geom?['coordinates'] as List?)?.cast<num>();
-              if (coords != null && coords.length >= 2) {
-                // GeoJSON order: [lon, lat]
-                pos = LatLng(coords[1].toDouble(), coords[0].toDouble());
-              }
-            } catch (_) {}
-            if (pos == null) {
-              final lat = (props['lat'] as num?)?.toDouble();
-              final lon = (props['lon'] as num?)?.toDouble();
-              if (lat != null && lon != null) pos = LatLng(lat, lon);
-            }
-            return _PlaceSuggestion(displayName: name, latLng: pos);
-          }).where((s) => s.displayName.isNotEmpty).toList();
+          suggs =
+              feats
+                  .map((f) {
+                    final props = (f['properties'] as Map?) ?? {};
+                    final name =
+                        (props['formatted'] ?? props['address_line1'] ?? '')
+                            as String;
+                    LatLng? pos;
+                    try {
+                      final geom = (f as Map)['geometry'] as Map?;
+                      final coords =
+                          (geom?['coordinates'] as List?)?.cast<num>();
+                      if (coords != null && coords.length >= 2) {
+                        // GeoJSON order: [lon, lat]
+                        pos = LatLng(
+                          coords[1].toDouble(),
+                          coords[0].toDouble(),
+                        );
+                      }
+                    } catch (_) {}
+                    if (pos == null) {
+                      final lat = (props['lat'] as num?)?.toDouble();
+                      final lon = (props['lon'] as num?)?.toDouble();
+                      if (lat != null && lon != null) pos = LatLng(lat, lon);
+                    }
+                    return _PlaceSuggestion(displayName: name, latLng: pos);
+                  })
+                  .where((s) => s.displayName.isNotEmpty)
+                  .toList();
         } else {
           final List data = jsonDecode(res.body) as List;
           suggs =
@@ -333,22 +368,27 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
   }
 
   Future<LatLng?> _geocodeOne(String text) async {
-  if (!_online) return null;
+    if (!_online) return null;
     try {
       Uri uri;
       bool parseGeoapify = false;
       if (kIsWeb && _geoapifyKey.isNotEmpty) {
-        final rawUrl = 'https://api.geoapify.com/v1/geocode/search?text=${Uri.encodeQueryComponent(text)}&limit=1&apiKey=$_geoapifyKey';
+        final rawUrl =
+            'https://api.geoapify.com/v1/geocode/search?text=${Uri.encodeQueryComponent(text)}&limit=1&apiKey=$_geoapifyKey';
         uri = Uri.parse(rawUrl);
         parseGeoapify = true;
       } else {
-        final rawUrl = 'https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&q=${Uri.encodeQueryComponent(text)}&limit=1';
+        final rawUrl =
+            'https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&q=${Uri.encodeQueryComponent(text)}&limit=1';
         if (kIsWeb && _nominatimProxyBase == null) {
           return null;
         }
-        uri = _nominatimProxyBase != null
-            ? Uri.parse('${_nominatimProxyBase!}${Uri.encodeComponent(rawUrl)}')
-            : Uri.parse(rawUrl);
+        uri =
+            _nominatimProxyBase != null
+                ? Uri.parse(
+                  '${_nominatimProxyBase!}${Uri.encodeComponent(rawUrl)}',
+                )
+                : Uri.parse(rawUrl);
       }
       final res = await http.get(
         uri,
@@ -390,7 +430,9 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
   Future<void> _submit() async {
     if (!_online) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('You are offline. Please reconnect to post the event.')),
+        const SnackBar(
+          content: Text('You are offline. Please reconnect to post the event.'),
+        ),
       );
       return;
     }
@@ -606,30 +648,32 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                   suffixIcon:
                       _searching
                           ? const Padding(
-                              padding: EdgeInsets.all(10),
-                              child: SizedBox(
-                                width: 16,
-                                height: 16,
-                                child: CircularProgressIndicator(strokeWidth: 2),
-                              ),
-                            )
+                            padding: EdgeInsets.all(10),
+                            child: SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                          )
                           : (_locCtrl.text.isNotEmpty
                               ? IconButton(
-                                  icon: const Icon(Icons.clear),
-                                  onPressed: () {
-                                    setState(() {
-                                      _debounce?.cancel();
-                                      _searching = false;
-                                      _locCtrl.clear();
-                                      _suggestions = [];
-                                    });
-                                    if (!_locFocus.hasFocus) {
-                                      FocusScope.of(context).requestFocus(_locFocus);
-                                    }
-                                  },
-                                )
+                                icon: const Icon(Icons.clear),
+                                onPressed: () {
+                                  setState(() {
+                                    _debounce?.cancel();
+                                    _searching = false;
+                                    _locCtrl.clear();
+                                    _suggestions = [];
+                                  });
+                                  // Keep keyboard up to continue typing immediately
+                                  if (!_locFocus.hasFocus) {
+                                    _locFocus.requestFocus();
+                                  }
+                                },
+                              )
                               : null),
                 ),
+                textInputAction: TextInputAction.search,
                 onChanged: (_) => _onLocationChanged(),
                 validator:
                     (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
@@ -668,7 +712,11 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                               _mapController.move(target, 15);
                             } else if (mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Could not locate that address.')),
+                                const SnackBar(
+                                  content: Text(
+                                    'Could not locate that address.',
+                                  ),
+                                ),
                               );
                             }
                           },
@@ -687,7 +735,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                       label: Text(
                         _start == null
                             ? 'Pick start'
-                            : 'Start: ${_start!.toLocal()}',
+                            : 'Start: ${_fmt(_start!)}',
                       ),
                     ),
                   ),
@@ -697,7 +745,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                       onPressed: _pickEnd,
                       icon: const Icon(Icons.calendar_today_outlined),
                       label: Text(
-                        _end == null ? 'Pick end' : 'End: ${_end!.toLocal()}',
+                        _end == null ? 'Pick end' : 'End: ${_fmt(_end!)}',
                       ),
                     ),
                   ),

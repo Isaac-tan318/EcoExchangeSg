@@ -54,10 +54,7 @@ class MyApp extends StatelessWidget {
       ),
       builder: (context, child) {
         return Stack(
-          children: [
-            if (child != null) child,
-            const OfflineBannerOverlay(),
-          ],
+          children: [if (child != null) child, const OfflineBannerOverlay()],
         );
       },
       home: LoginScreen(),

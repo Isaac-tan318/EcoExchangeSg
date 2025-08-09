@@ -74,7 +74,9 @@ class _CreatePostState extends State<CreatePost> {
   Future<void> _submit(BuildContext context) async {
     if (!_online) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('You are offline. Please reconnect to post.')),
+        const SnackBar(
+          content: Text('You are offline. Please reconnect to post.'),
+        ),
       );
       return;
     }

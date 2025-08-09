@@ -396,7 +396,10 @@ class FirebaseService {
   }
 
   // Stream posts with optional ordering and date range filtering
-  // If authorId is provided, we avoid composite indexes by sorting/filtering on client.
+  // - Select with filter criteria (other than identifier)
+  // - Select with multiple filter criteria (same field)
+  // - Select with multiple filter criteria (different fields)
+  // - Select with sort order
   Stream<List<Post>> getAllPostsAsStream({
     String? authorId,
     bool descending = true,
@@ -404,58 +407,42 @@ class FirebaseService {
     DateTime? endDate,
   }) {
     Query<Map<String, dynamic>> q = _postsCollection;
-    bool sortClient = false;
-    bool filterClient = false;
 
+    // Select with filter criteria (other than identifier):
+    // Filter posts by authorId if provided.
     if (authorId != null) {
-      // Equality filter + orderBy on another field can require composite index.
-      // We'll filter by author server-side and handle ordering/date-range client-side to avoid index needs.
       q = q.where('authorId', isEqualTo: authorId);
-      sortClient = true;
-      if (startDate != null || endDate != null) filterClient = true;
-    } else {
-      // Global feed
-      q = q.orderBy('date_posted', descending: descending);
-      if (startDate != null) {
-        q = q.where(
-          'date_posted',
-          isGreaterThanOrEqualTo: Timestamp.fromDate(startDate),
-        );
-      }
-      if (endDate != null) {
-        q = q.where(
-          'date_posted',
-          isLessThanOrEqualTo: Timestamp.fromDate(endDate),
-        );
-      }
     }
 
-    return q.snapshots().map((s) {
-      var list =
-          s.docs.map((d) => _postFromMap({...d.data(), 'id': d.id})).toList();
-      if (filterClient) {
-        list =
-            list.where((p) {
-              final dt =
-                  p.date_posted is DateTime
-                      ? p.date_posted as DateTime
-                      : DateTime.tryParse(p.date_posted?.toString() ?? '') ??
-                          DateTime(1970);
-              if (startDate != null && dt.isBefore(startDate)) return false;
-              if (endDate != null && dt.isAfter(endDate)) return false;
-              return true;
-            }).toList();
-      }
-      if (sortClient) {
-        list.sort(
-          (a, b) =>
-              descending
-                  ? b.date_posted.compareTo(a.date_posted)
-                  : a.date_posted.compareTo(b.date_posted),
-        );
-      }
-      return list;
-    });
+    // Select with multiple filter criteria (same field):
+    // Date range filters on the same field 'date_posted'.
+    if (startDate != null) {
+      q = q.where(
+        'date_posted',
+        isGreaterThanOrEqualTo: Timestamp.fromDate(startDate),
+      );
+    }
+    if (endDate != null) {
+      q = q.where(
+        'date_posted',
+        isLessThanOrEqualTo: Timestamp.fromDate(endDate),
+      );
+    }
+
+    // Select with sort order:
+    // Sort by posted date.
+    q = q.orderBy('date_posted', descending: descending);
+
+    // Select with multiple filter criteria (different fields):
+    // The combination of where('authorId' == ...) and where on 'date_posted'
+    // above constitutes multi-field filtering. This may require a composite index
+    // in Firestore (authorId asc, date_posted asc/desc). If you see an index error,
+    // follow the link in the error to create the suggested index.
+
+    return q.snapshots().map(
+      (s) =>
+          s.docs.map((d) => _postFromMap({...d.data(), 'id': d.id})).toList(),
+    );
   }
 
   // Update an existing post by ID
@@ -469,7 +456,7 @@ class FirebaseService {
               : post.description?.toString(),
       'poster': (post.poster is String) ? post.poster : post.poster?.toString(),
     };
-    // Remove nulls to avoid accidentally clearing fields
+    // Remove nulls to avoid accidentally clearing fields;
     data.removeWhere((key, value) => value == null);
 
     // Validate update payload
@@ -532,7 +519,7 @@ class FirebaseService {
           (map['createdAt'] is Timestamp)
               ? (map['createdAt'] as Timestamp).toDate()
               : null,
-  imageBase64: map['imageBase64'] as String?,
+      imageBase64: map['imageBase64'] as String?,
     );
   }
 
@@ -567,6 +554,7 @@ class FirebaseService {
   Stream<List<EventModel.Event>> getEventsAsStream({
     bool orderByStartAsc = true,
   }) {
+    // Select with sort order: order events by startDateTime.
     Query<Map<String, dynamic>> q = _eventsCollection.orderBy(
       'startDateTime',
       descending: !orderByStartAsc,
@@ -575,6 +563,33 @@ class FirebaseService {
       (s) =>
           s.docs.map((d) => _eventFromMap({...d.data(), 'id': d.id})).toList(),
     );
+  }
+
+  // Select with aggregation:
+  // Example helper using Firestore count() aggregation for posts.
+  Future<int> countPosts({
+    String? authorId,
+    DateTime? startDate,
+    DateTime? endDate,
+  }) async {
+    Query<Map<String, dynamic>> q = _postsCollection;
+    if (authorId != null) {
+      q = q.where('authorId', isEqualTo: authorId);
+    }
+    if (startDate != null) {
+      q = q.where(
+        'date_posted',
+        isGreaterThanOrEqualTo: Timestamp.fromDate(startDate),
+      );
+    }
+    if (endDate != null) {
+      q = q.where(
+        'date_posted',
+        isLessThanOrEqualTo: Timestamp.fromDate(endDate),
+      );
+    }
+    final aggSnap = await q.count().get();
+    return aggSnap.count ?? 0;
   }
 
   Future<void> updateEvent(String id, Map<String, dynamic> data) async {

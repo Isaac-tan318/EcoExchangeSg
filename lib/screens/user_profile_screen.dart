@@ -120,7 +120,20 @@ class ProfileScreen extends StatelessWidget {
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
                           StatCard('Awards', '1'),
-                          StatCard('Posts', '${user.posts.length}'),
+                          // Show Firestore-backed count of this user's posts
+                          FutureBuilder<int>(
+                            future: firebaseService.countPosts(
+                              authorId: firebaseService.getCurrentUser()?.uid,
+                            ),
+                            builder: (context, snap) {
+                              final countText =
+                                  snap.connectionState ==
+                                          ConnectionState.waiting
+                                      ? '…'
+                                      : (snap.data ?? 0).toString();
+                              return StatCard('Posts', countText);
+                            },
+                          ),
                         ],
                       ),
                       SizedBox(height: 20),

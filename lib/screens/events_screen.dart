@@ -5,6 +5,7 @@ import 'package:flutter_application_1/screens/edit_event_screen.dart';
 import 'package:flutter_application_1/services/firebase_service.dart';
 import 'package:get_it/get_it.dart';
 import 'package:flutter_application_1/widgets/event_widget.dart';
+import 'package:flutter_application_1/services/connectivity_service.dart';
 
 class EventsScreen extends StatefulWidget {
   const EventsScreen({super.key});
@@ -18,11 +19,16 @@ class _EventsScreenState extends State<EventsScreen> {
   final FirebaseService _svc = GetIt.instance<FirebaseService>();
   bool _isOrganiser = false;
   bool _loadingRole = true;
+  bool _online = true;
 
   @override
   void initState() {
     super.initState();
     _initRole();
+    GetIt.instance<ConnectivityService>().isOnline$.listen((isOnline) {
+      if (!mounted) return;
+      setState(() => _online = isOnline);
+    });
   }
 
   Future<void> _initRole() async {
@@ -78,6 +84,14 @@ class _EventsScreenState extends State<EventsScreen> {
                     _isOrganiser
                         ? PopupMenuButton<String>(
                           onSelected: (value) async {
+                            if (!_online) {
+                              ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+                                const SnackBar(
+                                  content: Text('Offline: action unavailable'),
+                                ),
+                              );
+                              return;
+                            }
                             if (value == 'edit') {
                               Navigator.of(context).push(
                                 MaterialPageRoute(
@@ -112,13 +126,15 @@ class _EventsScreenState extends State<EventsScreen> {
               ? FloatingActionButton(
                 backgroundColor: scheme.primary,
                 foregroundColor: scheme.onPrimary,
-                onPressed: () {
+                onPressed: !_online
+                    ? null
+                    : () {
                   Navigator.of(context).push(
                     MaterialPageRoute(
                       builder: (_) => const CreateEventScreen(),
                     ),
                   );
-                },
+                  },
                 child: const Icon(Icons.add),
               )
               : null,

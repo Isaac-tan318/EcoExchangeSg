@@ -72,20 +72,19 @@ class NotificationService {
       for (final change in snapshot.docChanges) {
         if (change.type == DocumentChangeType.added) {
           final data = change.doc.data();
-          final title = (data?['title']?.toString() ?? 'New Event');
-          final desc = (data?['description']?.toString() ?? '');
+      final title = (data?['title']?.toString() ?? 'Untitled');
+      final bodyMsg =
+        'A new event has been posted! Check out ($title) on EcoExchangeSg now!';
           if (change.doc.id != lastId) {
             if (kIsWeb) {
               // For Web: print to console instead of using local notifications
               // so you can see the detection without additional setup.
               // Example output: [New Event Detected] Title - Description
               // ignore: avoid_print
-              print(
-                '[New Event Detected] $title - ${desc.isEmpty ? '(no description)' : desc}',
-              );
+              print('[New Event] $bodyMsg');
             } else {
               // Mobile local notification
-              await _showNotification(title: title, body: desc);
+              await _showNotification(title: 'EcoExchangeSg', body: bodyMsg);
             }
             await prefs.setString('lastNotifiedEventId', change.doc.id);
           }

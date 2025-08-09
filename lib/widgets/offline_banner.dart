@@ -28,13 +28,13 @@ class _OfflineBannerOverlayState extends State<OfflineBannerOverlay> {
     final scheme = Theme.of(context).colorScheme;
     return SafeArea(
       child: Align(
-        alignment: Alignment.topCenter,
+        alignment: Alignment.bottomCenter,
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: double.infinity),
           child: Container(
             width: double.infinity,
             margin: const EdgeInsets.all(8),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
               color: scheme.errorContainer,
               borderRadius: BorderRadius.circular(12),
@@ -50,12 +50,15 @@ class _OfflineBannerOverlayState extends State<OfflineBannerOverlay> {
               mainAxisSize: MainAxisSize.max,
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Icon(Icons.wifi_off, color: scheme.onErrorContainer),
-                const SizedBox(width: 10),
+                Icon(Icons.wifi_off, color: scheme.onErrorContainer, size: 16),
+                const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     'You are offline. Some features are unavailable.',
-                    style: TextStyle(color: scheme.onErrorContainer),
+                    style: TextStyle(
+                      color: scheme.onErrorContainer,
+                      fontSize: Theme.of(context).textTheme.bodySmall?.fontSize,
+                    ),
                     softWrap: true,
                   ),
                 ),

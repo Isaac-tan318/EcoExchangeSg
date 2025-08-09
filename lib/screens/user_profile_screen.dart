@@ -37,7 +37,9 @@ class ProfileScreen extends StatelessWidget {
           return Center(child: Text('No user data available'));
         }
 
-        var user = snapshot.data!;
+  var user = snapshot.data!;
+  final username = (user.username?.toString() ?? 'Unknown User');
+  final bio = (user.bio?.toString() ?? '');
 
         return CustomScrollView(
           slivers: [
@@ -68,7 +70,7 @@ class ProfileScreen extends StatelessWidget {
                   padding: EdgeInsets.fromLTRB(50, 0, 50, 15),
                   decoration: BoxDecoration(color: scheme.primary),
                   child: Text(
-                    user.username,
+                    username,
                     style: TextStyle(color: scheme.onPrimary),
                   ),
                 ),
@@ -100,7 +102,7 @@ class ProfileScreen extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        user.bio,
+                        bio,
                         style: TextStyle(
                           fontSize: texttheme.bodyLarge!.fontSize,
                         ),

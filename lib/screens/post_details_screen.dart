@@ -6,6 +6,7 @@ import 'package:flutter_application_1/screens/edit_post_screen.dart';
 import 'dart:convert';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter_application_1/services/connectivity_service.dart';
 
 class PostDetailsScreen extends StatefulWidget {
   static const routeName = '/postDetails';
@@ -19,6 +20,16 @@ class PostDetailsScreen extends StatefulWidget {
 
 class _PostDetailsScreenState extends State<PostDetailsScreen> {
   bool _deleting = false;
+  bool _online = true;
+
+  @override
+  void initState() {
+    super.initState();
+    GetIt.instance<ConnectivityService>().isOnline$.listen((isOnline) {
+      if (!mounted) return;
+      setState(() => _online = isOnline);
+    });
+  }
 
   Future<void> _reportPost(Post post) async {
     final subject = Uri.encodeComponent('[Report] Post ${post.title ?? ''}');
@@ -162,10 +173,10 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
                     const Spacer(),
                     if (post.authorId == service.getCurrentUser()?.uid) ...[
                       TextButton.icon(
-                        onPressed:
-                            _deleting
-                                ? null
-                                : () async {
+            onPressed:
+              _deleting || !_online
+                ? null
+                : () async {
                                   final navigator = Navigator.of(context);
                                   final updated = await navigator.pushNamed(
                                     EditPost.routeName,
@@ -197,7 +208,9 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
                         )
                       else
                         TextButton.icon(
-                          onPressed: () async {
+                          onPressed: !_online
+                              ? null
+                              : () async {
                             final navigator = Navigator.of(context);
                             final messenger = ScaffoldMessenger.maybeOf(
                               context,

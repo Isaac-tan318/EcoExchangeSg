@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_application_1/main.dart';
 import 'package:flutter_application_1/screens/auth/forgot_password_screen.dart';
 import 'package:flutter_application_1/screens/auth/login_screen.dart';
-import 'package:flutter_application_1/screens/auth/organisation_login_screen.dart';
 import 'package:flutter_application_1/screens/auth/organisation_signup_screen.dart';
-import 'package:flutter_application_1/screens/auth/signup_screen.dart';
 import 'package:flutter_application_1/screens/home_page.dart';
 import 'package:flutter_application_1/services/firebase_service.dart';
 import 'package:flutter_application_1/widgets/textfield.dart';
@@ -24,6 +21,7 @@ class _OrganisationLoginScreenState extends State<OrganisationLoginScreen> {
   String email = "";
   String password = "";
   var showPassword = false;
+  bool _loading = false;
 
   FirebaseService firebaseService = GetIt.instance<FirebaseService>();
 
@@ -38,6 +36,7 @@ class _OrganisationLoginScreenState extends State<OrganisationLoginScreen> {
       form.currentState!.save();
 
       try {
+        setState(() => _loading = true);
         await firebaseService.login(email, password, 'organiser');
         Navigator.of(context).pushReplacementNamed(HomeScreen.routeName);
         ScaffoldMessenger.of(
@@ -47,6 +46,8 @@ class _OrganisationLoginScreenState extends State<OrganisationLoginScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text("Login failed, invalid email or password.")),
         );
+      } finally {
+        if (mounted) setState(() => _loading = false);
       }
     }
   }
@@ -135,20 +136,35 @@ class _OrganisationLoginScreenState extends State<OrganisationLoginScreen> {
                   SizedBox(height: 15),
 
                   ElevatedButton(
-                    onPressed: () {
-                      if (form.currentState!.validate()) {
-                        login(context);
-                      }
-                    },
+                    onPressed: _loading
+                        ? null
+                        : () {
+                            if (form.currentState!.validate()) {
+                              login(context);
+                            }
+                          },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: scheme.tertiaryContainer,
                       foregroundColor: scheme.onTertiaryContainer,
                       textStyle: TextStyle(fontWeight: FontWeight.w600),
                     ),
-                    child: Text(
-                      "Login",
-                      style: TextStyle(fontSize: texttheme.bodyLarge!.fontSize),
-                    ),
+                    child: _loading
+                        ? SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                scheme.onTertiaryContainer,
+                              ),
+                            ),
+                          )
+                        : Text(
+                            "Login",
+                            style: TextStyle(
+                              fontSize: texttheme.bodyLarge!.fontSize,
+                            ),
+                          ),
                   ),
                 ],
               ),
@@ -157,14 +173,17 @@ class _OrganisationLoginScreenState extends State<OrganisationLoginScreen> {
 
             // Login with google
             ElevatedButton(
-              onPressed: () async {
+              onPressed: _loading
+                  ? null
+                  : () async {
                 try {
+                  setState(() => _loading = true);
                   // Adds role if user is signing up with google
                   var result = await firebaseService.signInWithGoogle(
                     'organisation',
                   );
                   debugPrint("Google login result: $result");
-                  if (result != null && result.user != null) {
+                  if (result.user != null) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(content: Text("Google login successful!")),
                     );
@@ -182,6 +201,8 @@ class _OrganisationLoginScreenState extends State<OrganisationLoginScreen> {
                       content: Text("Google login failed: ${error.toString()}"),
                     ),
                   );
+                } finally {
+                  if (mounted) setState(() => _loading = false);
                 }
               },
               style: ElevatedButton.styleFrom(

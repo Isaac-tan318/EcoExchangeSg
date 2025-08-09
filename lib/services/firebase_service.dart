@@ -131,18 +131,30 @@ class FirebaseService {
 
   // Gets current user's info, if not supplies default information
   Stream<UserModel.User> getUser() {
+    final uid = getCurrentUser()?.uid;
+    if (uid == null) {
+      // If no authenticated user yet, return a single default value to avoid null doc IDs.
+      return Stream.value(
+        UserModel.User(
+          username: 'Unknown User',
+          bio:
+              "Environmental advocate passionate in promoting sustainable living and conservation",
+          posts: const [],
+        ),
+      );
+    }
     return FirebaseFirestore.instance
         .collection('users')
-        .doc(getCurrentUser()?.uid)
+        .doc(uid)
         .snapshots()
         .map((snapshot) {
           if (snapshot.exists) {
             final data = snapshot.data() as Map<String, dynamic>;
             return UserModel.User(
-              username: data['username'] ?? 'Unknown User',
+              username: (data['username'] ?? 'Unknown User'),
               bio:
-                  data['bio'] ??
-                  "Environmental advocate passionate in promoting sustainable living and conservation",
+                  (data['bio'] ??
+                      "Environmental advocate passionate in promoting sustainable living and conservation"),
               posts: const [],
             );
           } else {
@@ -406,11 +418,14 @@ class FirebaseService {
     DateTime? startDate,
     DateTime? endDate,
   }) {
-    Query<Map<String, dynamic>> q = _postsCollection;
+  Query<Map<String, dynamic>> q = _postsCollection;
+  final bool hasAuthor = authorId != null;
+  final bool hasRange = startDate != null || endDate != null;
+  bool serverOrders = false; // whether we apply server-side orderBy
 
     // Select with filter criteria (other than identifier):
     // Filter posts by authorId if provided.
-    if (authorId != null) {
+  if (authorId != null) {
       q = q.where('authorId', isEqualTo: authorId);
     }
 
@@ -430,8 +445,19 @@ class FirebaseService {
     }
 
     // Select with sort order:
-    // Sort by posted date.
-    q = q.orderBy('date_posted', descending: descending);
+    // If there is a date range inequality, Firestore requires orderBy on that field.
+    // If there is no range and no author filter, we can order on server.
+    // If filtering by author only, skip server-side order to avoid composite index,
+    // and we will sort on client instead.
+    if (hasRange) {
+      q = q.orderBy('date_posted', descending: descending);
+      serverOrders = true;
+    } else if (!hasAuthor) {
+      q = q.orderBy('date_posted', descending: descending);
+      serverOrders = true;
+    } else {
+      serverOrders = false;
+    }
 
     // Select with multiple filter criteria (different fields):
     // The combination of where('authorId' == ...) and where on 'date_posted'
@@ -439,10 +465,16 @@ class FirebaseService {
     // in Firestore (authorId asc, date_posted asc/desc). If you see an index error,
     // follow the link in the error to create the suggested index.
 
-    return q.snapshots().map(
-      (s) =>
-          s.docs.map((d) => _postFromMap({...d.data(), 'id': d.id})).toList(),
-    );
+    return q.snapshots().map((s) {
+      final list =
+          s.docs.map((d) => _postFromMap({...d.data(), 'id': d.id})).toList();
+      if (!serverOrders) {
+        list.sort((a, b) => descending
+            ? b.date_posted.compareTo(a.date_posted)
+            : a.date_posted.compareTo(b.date_posted));
+      }
+      return list;
+    });
   }
 
   // Update an existing post by ID

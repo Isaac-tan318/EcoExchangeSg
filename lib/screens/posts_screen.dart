@@ -6,6 +6,8 @@ import 'package:flutter_application_1/widgets/post_widget.dart';
 
 import 'package:flutter_application_1/models/post.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
+import 'package:flutter_application_1/services/connectivity_service.dart';
+import 'package:get_it/get_it.dart' as gi;
 
 // ignore: must_be_immutable
 class PostsScreen extends StatefulWidget {
@@ -21,6 +23,16 @@ class _PostsScreenState extends State<PostsScreen> {
   String _timeFilter = 'All time';
   DateTime? _start;
   DateTime? _end;
+  bool _online = true;
+
+  @override
+  void initState() {
+    super.initState();
+    gi.GetIt.instance<ConnectivityService>().isOnline$.listen((isOnline) {
+      if (!mounted) return;
+      setState(() => _online = isOnline);
+    });
+  }
 
   String _fmt(DateTime d) {
     final day = d.day.toString().padLeft(2, '0');
@@ -58,9 +70,11 @@ class _PostsScreenState extends State<PostsScreen> {
           width: double.infinity,
           padding: const EdgeInsets.fromLTRB(20, 15, 20, 0),
           child: ElevatedButton(
-            onPressed: () {
-              nav.pushNamed(CreatePost.routeName);
-            },
+            onPressed: !_online
+                ? null
+                : () {
+                    nav.pushNamed(CreatePost.routeName);
+                  },
 
             style: ElevatedButton.styleFrom(
               backgroundColor: scheme.primaryContainer,
@@ -295,6 +309,7 @@ class _PostsScreenState extends State<PostsScreen> {
                       PostWidget(post),
                       initialReplyTitle: mention,
                       mentionAuthorId: (post.authorId ?? '').toString(),
+                      online: _online,
                     );
                   },
                 ),
@@ -312,11 +327,13 @@ class Slide extends StatelessWidget {
   final Widget child;
   final String? initialReplyTitle;
   final String? mentionAuthorId;
+  final bool online;
   const Slide(
     this.child, {
     super.key,
     this.initialReplyTitle,
     this.mentionAuthorId,
+    required this.online,
   });
 
   @override
@@ -332,6 +349,12 @@ class Slide extends StatelessWidget {
         children: [
           SlidableAction(
             onPressed: (context) {
+              if (!online) {
+                ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+                  const SnackBar(content: Text('Offline: action unavailable')),
+                );
+                return;
+              }
               nav.pushNamed(
                 CreatePost.routeName,
                 arguments: {

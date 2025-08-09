@@ -12,6 +12,8 @@ import 'package:flutter_application_1/screens/create_post_screen.dart';
 import 'package:flutter_application_1/screens/edit_information_screen.dart';
 import 'package:flutter_application_1/screens/edit_post_screen.dart';
 import 'package:flutter_application_1/screens/home_page.dart';
+import 'package:flutter_application_1/models/post.dart';
+import 'package:flutter_application_1/screens/post_details_screen.dart';
 import 'package:flutter_application_1/services/firebase_service.dart';
 import 'package:get_it/get_it.dart';
 
@@ -47,13 +49,31 @@ class MyApp extends StatelessWidget {
         SignupScreen.routeName: (_) => SignupScreen(),
         HomeScreen.routeName: (_) => HomeScreen(),
         CreatePost.routeName: (_) => CreatePost(),
-        EditPost.routeName: (_) => EditPost(),
         ForgotPasswordScreen.routeName: (_) => ForgotPasswordScreen(),
         OrganisationLoginScreen.routeName: (_) => OrganisationLoginScreen(),
         OrganisationSignupScreen.routeName: (_) => OrganisationSignupScreen(),
         AddNumberScreen.routeName: (_) => AddNumberScreen(),
         PhoneNumberLoginScreen.routeName: (_) => PhoneNumberLoginScreen(),
         EditInformationScreen.routeName: (_) => EditInformationScreen(),
+      },
+      onGenerateRoute: (settings) {
+        if (settings.name == EditPost.routeName) {
+          final args = settings.arguments as Map<String, dynamic>;
+          return MaterialPageRoute(
+            builder:
+                (_) => EditPost(
+                  postId: args['postId'] as String,
+                  initial: args['post'] as Post,
+                ),
+          );
+        }
+        if (settings.name == PostDetailsScreen.routeName) {
+          final args = settings.arguments as Map<String, dynamic>;
+          return MaterialPageRoute(
+            builder: (_) => PostDetailsScreen(postId: args['postId'] as String),
+          );
+        }
+        return null;
       },
     );
   }

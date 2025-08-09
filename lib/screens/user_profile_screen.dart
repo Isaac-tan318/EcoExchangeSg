@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/models/post.dart';
-import 'package:flutter_application_1/screens/posts_screen.dart';
 import 'package:flutter_application_1/services/firebase_service.dart';
 
 import 'package:flutter_application_1/widgets/post_widget.dart';
@@ -120,7 +119,6 @@ class ProfileScreen extends StatelessWidget {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
-                          StatCard('Likes', '${user.likes ?? 0}'),
                           StatCard('Awards', '1'),
                           StatCard('Posts', '${user.posts.length}'),
                         ],
@@ -141,11 +139,46 @@ class ProfileScreen extends StatelessWidget {
                 ),
               ]),
             ),
-
-            SliverList(
-              delegate: SliverChildBuilderDelegate((context, index) {
-                return UserPostWidget(user.posts[index]);
-              }, childCount: user.posts.length),
+            // Stream the current user's posts from Firestore and show them
+            StreamBuilder<List<Post>>(
+              stream: firebaseService.getAllPostsAsStream(
+                authorId: firebaseService.getCurrentUser()?.uid,
+              ),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 20),
+                      child: Center(child: CircularProgressIndicator()),
+                    ),
+                  );
+                }
+                if (snapshot.hasError) {
+                  return SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 20),
+                      child: Center(
+                        child: Text('Error loading posts: ${snapshot.error}'),
+                      ),
+                    ),
+                  );
+                }
+                final posts = snapshot.data ?? [];
+                if (posts.isEmpty) {
+                  return const SliverToBoxAdapter(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(vertical: 20),
+                      child: Center(child: Text('No posts yet')),
+                    ),
+                  );
+                }
+                return SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) => UserPostWidget(posts[index]),
+                    childCount: posts.length,
+                  ),
+                );
+              },
             ),
           ],
         );

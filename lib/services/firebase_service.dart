@@ -7,6 +7,10 @@ import 'package:flutter_application_1/models/user.dart' as UserModel;
 import 'package:flutter_application_1/models/post.dart';
 
 class FirebaseService {
+  // Firestore collection for posts
+  final CollectionReference<Map<String, dynamic>> _postsCollection =
+      FirebaseFirestore.instance.collection('posts');
+
   // register user and add user data to firestore
   Future<UserCredential> register(
     String email,
@@ -102,69 +106,30 @@ class FirebaseService {
 
   // Gets current user's info, if not supplies default information
   Stream<UserModel.User> getUser() {
-    return FirebaseFirestore.instance.collection('users').doc(getCurrentUser()?.uid).snapshots().map((
-      snapshot,
-    ) {
-      if (snapshot.exists) {
-        final data = snapshot.data() as Map<String, dynamic>;
-        return UserModel.User(
-          username: data['username'] ?? 'Unknown User',
-          bio:
-              data['bio'] ??
-              "Environmental advocate passionate in promoting sustainable living and conservation",
-          likes: data['likes'] ?? 200,
-          posts: [
-            // Default posts
-            Post(
-              title: "Post title",
-              description:
-                  "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in",
-              likes: 100,
-              dislikes: 1,
-              poster: data['username'] ?? 'Unknown User',
-              date_posted: DateTime.now().subtract(Duration(days: 1)),
-            ),
-            Post(
-              title: "Post title",
-              description:
-                  "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in",
-              likes: 100,
-              dislikes: 1,
-              poster: data['username'] ?? 'Unknown User',
-              date_posted: DateTime.now().subtract(Duration(days: 1)),
-            ),
-          ],
-        );
-      } else {
-        // Return default user if document doesn't exist
-        return UserModel.User(
-          username: 'Unknown User',
-          bio:
-              "Environmental advocate passionate in promoting sustainable living and conservation",
-          likes: 200,
-          posts: [
-            Post(
-              title: "Post title",
-              description:
-                  "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in",
-              likes: 100,
-              dislikes: 1,
-              poster: "Unknown User",
-              date_posted: DateTime.now().subtract(Duration(days: 1)),
-            ),
-            Post(
-              title: "Post title",
-              description:
-                  "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in",
-              likes: 100,
-              dislikes: 1,
-              poster: "Unknown User",
-              date_posted: DateTime.now().subtract(Duration(days: 1)),
-            ),
-          ],
-        );
-      }
-    });
+    return FirebaseFirestore.instance
+        .collection('users')
+        .doc(getCurrentUser()?.uid)
+        .snapshots()
+        .map((snapshot) {
+          if (snapshot.exists) {
+            final data = snapshot.data() as Map<String, dynamic>;
+            return UserModel.User(
+              username: data['username'] ?? 'Unknown User',
+              bio:
+                  data['bio'] ??
+                  "Environmental advocate passionate in promoting sustainable living and conservation",
+              posts: const [],
+            );
+          } else {
+            // Return default user if document doesn't exist
+            return UserModel.User(
+              username: 'Unknown User',
+              bio:
+                  "Environmental advocate passionate in promoting sustainable living and conservation",
+              posts: const [],
+            );
+          }
+        });
   }
 
   Future<void> loginWithPhoneNumber(
@@ -323,5 +288,156 @@ class FirebaseService {
         {'email': newEmail},
       );
     }
+  }
+
+  // Posts CRUD
+
+  // validation
+  bool _isBlank(dynamic v) => v == null || (v is String && v.trim().isEmpty);
+
+  void _validatePostCreate(Post post) {
+    if (_isBlank(post.title)) {
+      throw Exception('Title is required');
+    }
+    if (_isBlank(post.description)) {
+      throw Exception('Description is required');
+    }
+  }
+
+  void _validatePostUpdate(Map<String, dynamic> data) {
+    if (data.isEmpty) {
+      throw Exception('No fields to update');
+    }
+    if (data.containsKey('title') && _isBlank(data['title'])) {
+      throw Exception('Title cannot be empty');
+    }
+    if (data.containsKey('description') && _isBlank(data['description'])) {
+      throw Exception('Description cannot be empty');
+    }
+  }
+
+  // Create a new post. Returns the created document ID.
+  Future<String> createPost(Post post) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      throw Exception('Not authenticated');
+    }
+
+    // Validate required fields
+    _validatePostCreate(post);
+
+    final docRef = _postsCollection.doc();
+
+    // Fetch username for poster label (fallback to email if unavailable)
+    String posterName = user.email ?? 'Unknown User';
+    try {
+      final userDoc =
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(user.uid)
+              .get();
+      final uname = userDoc.data()?['username'];
+      if (uname is String && uname.trim().isNotEmpty) {
+        posterName = uname.trim();
+      }
+    } catch (_) {
+      // ignore and use fallback
+    }
+
+    final data = <String, dynamic>{
+      'title': (post.title is String) ? post.title : post.title?.toString(),
+      'description':
+          (post.description is String)
+              ? post.description
+              : post.description?.toString(),
+      'poster': post.poster ?? posterName,
+      'authorId': user.uid,
+      'date_posted': FieldValue.serverTimestamp(),
+    };
+
+    await docRef.set(data);
+    return docRef.id;
+  }
+
+  // Get a single post by ID
+  Future<Post?> getPost(String id) async {
+    final snap = await _postsCollection.doc(id).get();
+    if (!snap.exists) return null;
+    final data = snap.data();
+    if (data == null) return null;
+    return _postFromMap({...data, 'id': snap.id});
+  }
+
+  // Stream posts, Newest posts are first by date_posted.
+  Stream<List<Post>> getAllPostsAsStream({String? authorId}) {
+    Query<Map<String, dynamic>> q = _postsCollection;
+    bool sortClient = false;
+    if (authorId != null) {
+      // Equality filter + orderBy on another field usually requires a composite index.
+      // To avoid the index requirement for the profile view, filter server-side and sort client-side.
+      q = q.where('authorId', isEqualTo: authorId);
+      sortClient = true;
+    } else {
+      // Global feed ordered by date_posted desc can use single-field index.
+      q = q.orderBy('date_posted', descending: true);
+    }
+    return q.snapshots().map((s) {
+      final list =
+          s.docs.map((d) => _postFromMap({...d.data(), 'id': d.id})).toList();
+      if (sortClient) {
+        list.sort((a, b) => b.date_posted.compareTo(a.date_posted));
+      }
+      return list;
+    });
+  }
+
+  // Update an existing post by ID
+  Future<void> updatePost(String id, Post post) async {
+    // Build update map and normalize types
+    final data = <String, dynamic>{
+      'title': (post.title is String) ? post.title : post.title?.toString(),
+      'description':
+          (post.description is String)
+              ? post.description
+              : post.description?.toString(),
+      'poster': (post.poster is String) ? post.poster : post.poster?.toString(),
+    };
+    // Remove nulls to avoid accidentally clearing fields
+    data.removeWhere((key, value) => value == null);
+
+    // Validate update payload
+    _validatePostUpdate(data);
+
+    await _postsCollection.doc(id).update(data);
+  }
+
+  // Delete a post by ID
+  Future<void> deletePost(String id) async {
+    final postRef = _postsCollection.doc(id);
+    // Primary: delete the post document.
+    await postRef.delete();
+  }
+
+  // Helper to convert Firestore map to the Post model
+  Post _postFromMap(Map<String, dynamic> map) {
+    final ts = map['date_posted'];
+    DateTime? postedAt;
+    if (ts is Timestamp) {
+      postedAt = ts.toDate();
+    } else if (ts is DateTime) {
+      postedAt = ts;
+    }
+    final posterVal = map['poster'];
+    return Post(
+      id: map['id'],
+      title: map['title'],
+      description: map['description'],
+      poster:
+          posterVal is String
+              ? posterVal
+              : (posterVal?.toString() ?? 'Unknown User'),
+      authorId: map['authorId'],
+      date_posted: postedAt ?? DateTime.now(),
+    );
   }
 }

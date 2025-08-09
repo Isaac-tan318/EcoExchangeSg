@@ -1,43 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/screens/create_post_screen.dart';
+import 'package:flutter_application_1/services/firebase_service.dart';
+import 'package:get_it/get_it.dart';
 import 'package:flutter_application_1/widgets/post_widget.dart';
 
 import 'package:flutter_application_1/models/post.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 
 // ignore: must_be_immutable
-class PostsScreen extends StatelessWidget {
-  var posts = [
-    Post(
-      title: "Post title",
-      description:
-          "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in",
-      likes: 100,
-      dislikes: 1,
-      poster: "John doe",
-      date_posted: DateTime.now().subtract(Duration(days: 1)),
-    ),
-    Post(
-      title: "Post title",
-      description:
-          "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in",
-      likes: 100,
-      dislikes: 1,
-      poster: "John doe",
-      date_posted: DateTime.now().subtract(Duration(days: 1)),
-    ),
-    Post(
-      title: "Post title",
-      description:
-          "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in",
-      likes: 100,
-      dislikes: 1,
-      poster: "John doe",
-      date_posted: DateTime.now().subtract(Duration(days: 1)),
-    ),
-  ];
-
+class PostsScreen extends StatefulWidget {
   PostsScreen({super.key});
+
+  @override
+  State<PostsScreen> createState() => _PostsScreenState();
+}
+
+class _PostsScreenState extends State<PostsScreen> {
+  final FirebaseService firebaseService = GetIt.instance<FirebaseService>();
+  String _sort = 'New';
 
   @override
   Widget build(BuildContext context) {
@@ -109,11 +89,13 @@ class PostsScreen extends StatelessWidget {
                 ),
                 hintText: 'Sort by',
                 // initialSelection: 'New',
-                onSelected: (value) {},
+                initialSelection: _sort,
+                onSelected: (value) {
+                  if (value == null) return;
+                  setState(() => _sort = value);
+                },
                 dropdownMenuEntries: const [
                   DropdownMenuEntry(value: 'New', label: 'New'),
-                  DropdownMenuEntry(value: 'Likes', label: 'Likes'),
-                  DropdownMenuEntry(value: 'Controversy', label: 'Controversy'),
                 ],
               ),
 
@@ -154,18 +136,44 @@ class PostsScreen extends StatelessWidget {
 
         // show posts
         Expanded(
-          child: RefreshIndicator(
-            onRefresh: () {
-              return Future.value();
+          child: StreamBuilder<List<Post>>(
+            stream: firebaseService.getAllPostsAsStream(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              if (snapshot.hasError) {
+                return Center(child: Text('Error: ${snapshot.error}'));
+              }
+              List<Post> posts = List.of(snapshot.data ?? []);
+              // Apply client-side sorting for now
+              // Only sort by New now
+              posts.sort(
+                (a, b) => (b.date_posted as DateTime).compareTo(
+                  a.date_posted as DateTime,
+                ),
+              );
+              if (posts.isEmpty) {
+                return const Center(child: Text('No posts yet'));
+              }
+              return RefreshIndicator(
+                onRefresh: () async {},
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: posts.length,
+                  itemBuilder: (BuildContext context, int index) {
+                    final post = posts[index];
+                    final poster = (post.poster ?? '').toString().trim();
+                    final mention = poster.isEmpty ? '' : '@$poster ';
+                    return Slide(
+                      PostWidget(post),
+                      initialReplyTitle: mention,
+                      mentionAuthorId: (post.authorId ?? '').toString(),
+                    );
+                  },
+                ),
+              );
             },
-            child: ListView.builder(
-              shrinkWrap: true,
-              itemCount: posts.length,
-              itemBuilder: (BuildContext context, int index) {
-                var post = posts[index];
-                return Slide(PostWidget(post));
-              },
-            ),
           ),
         ),
       ],
@@ -175,8 +183,15 @@ class PostsScreen extends StatelessWidget {
 
 // ignore: must_be_immutable
 class Slide extends StatelessWidget {
-  Widget child;
-  Slide(this.child, {super.key});
+  final Widget child;
+  final String? initialReplyTitle;
+  final String? mentionAuthorId;
+  const Slide(
+    this.child, {
+    super.key,
+    this.initialReplyTitle,
+    this.mentionAuthorId,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -191,7 +206,13 @@ class Slide extends StatelessWidget {
         children: [
           SlidableAction(
             onPressed: (context) {
-              nav.pushNamed(CreatePost.routeName);
+              nav.pushNamed(
+                CreatePost.routeName,
+                arguments: {
+                  'initialTitle': initialReplyTitle ?? '',
+                  'mentionAuthorId': mentionAuthorId ?? '',
+                },
+              );
             },
 
             backgroundColor: Colors.green,

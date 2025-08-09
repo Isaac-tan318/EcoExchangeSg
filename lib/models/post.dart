@@ -1,17 +1,17 @@
 class Post {
+  var id;
   var title;
   var description;
-  var likes;
-  var dislikes;
   var poster;
+  var authorId;
   var date_posted;
 
   Post({
+    this.id,
     this.title,
     this.description,
-    this.likes,
-    this.dislikes,
     this.poster,
+    this.authorId,
     this.date_posted,
   });
 }

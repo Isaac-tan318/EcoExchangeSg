@@ -1,0 +1,148 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_application_1/screens/auth/login_screen.dart';
+import 'package:flutter_application_1/screens/home_page.dart';
+import 'package:flutter_application_1/services/firebase_service.dart';
+import 'package:flutter_application_1/widgets/textfield.dart';
+import 'package:get_it/get_it.dart';
+
+class AddNumberScreen extends StatelessWidget {
+  static var routeName = "/add_number";
+
+  AddNumberScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    var scheme = Theme.of(context).colorScheme;
+    var texttheme = Theme.of(context).textTheme;
+    var nav = Navigator.of(context);
+    var form = GlobalKey<FormState>();
+    String phoneNumber = '';
+    FirebaseService firebaseService = GetIt.instance<FirebaseService>();
+
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back),
+          onPressed: () {
+            nav.pop();
+          },
+        ),
+      ),
+      body: SafeArea(
+        child: Center(
+          // User enters phone number and OTP is sent to them
+          // User enters OTP into dialog to verify the phone number
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                "Add phone number",
+                style: TextStyle(fontSize: texttheme.headlineMedium?.fontSize),
+              ),
+              SizedBox(height: 30),
+              Form(
+                key: form,
+                child: Field(
+                  child: TextFormField(
+                    keyboardType: TextInputType.phone,
+                    decoration: InputDecoration.collapsed(
+                      hintText: "Phone Number",
+                    ),
+                    validator: (value) {
+                      if (value != null && value.isNotEmpty) {
+                        final phoneRegex = RegExp(r'^\+?[0-9]{7,15}$');
+                        if (!phoneRegex.hasMatch(value)) {
+                          return 'Enter a valid phone number';
+                        }
+                      }
+                      return null;
+                    },
+                    onSaved: (value) => phoneNumber = value ?? '',
+                  ),
+                ),
+              ),
+              SizedBox(height: 20),
+              ElevatedButton(
+                onPressed: () async {
+                  if (form.currentState!.validate()) {
+                    form.currentState!.save();
+
+                    // Function to Prompt user for OTP
+
+                    Future<String> getOtpFromUser(BuildContext context) async {
+                      String otp = '';
+                      await showDialog(
+                        context: context,
+                        builder: (context) {
+                          var otpController = TextEditingController();
+                          return AlertDialog(
+                            title: Text('Enter OTP'),
+                            content: TextField(
+                              controller: otpController,
+                              keyboardType: TextInputType.number,
+                              decoration: InputDecoration(hintText: 'OTP'),
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () {
+                                  otp = otpController.text;
+                                  Navigator.of(context).pop();
+                                },
+                                child: Text('Submit'),
+                              ),
+                            ],
+                          );
+                        },
+                      );
+                      return otp;
+                    }
+
+                    // sending function to firebase service
+                    try {
+                      await firebaseService.linkPhoneNumberToCurrentUser(
+                        phoneNumber,
+                        getOtpFromUser,
+                        context,
+                      );
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text("Phone number saved!")),
+                      );
+                      nav.pushReplacementNamed(HomeScreen.routeName);
+                    } on Exception catch (e) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text("Error saving number: ${e.toString()}"),
+                        ),
+                      );
+                    }
+                  }
+                },
+                child: Text("Save"),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: scheme.primaryContainer,
+                  foregroundColor: scheme.onPrimaryContainer,
+                  padding: EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+                ),
+              ),
+              SizedBox(height: 10),
+              TextButton(
+                onPressed: () {
+                  nav.pop();
+                },
+                child: Text(
+                  "Cancel",
+                  style: TextStyle(
+                    color: scheme.onSurface,
+                    fontSize: texttheme.bodyLarge?.fontSize,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}

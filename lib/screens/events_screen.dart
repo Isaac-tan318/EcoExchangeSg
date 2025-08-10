@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_application_1/models/event.dart';
+import 'package:flutter_application_1/models/event_model.dart';
 import 'package:flutter_application_1/screens/create_event_screen.dart';
 import 'package:flutter_application_1/screens/edit_event_screen.dart';
 import 'package:flutter_application_1/services/firebase_service.dart';
@@ -9,6 +9,7 @@ import 'package:table_calendar/table_calendar.dart';
 import 'package:flutter_application_1/widgets/event_widget.dart';
 import 'package:flutter_application_1/services/connectivity_service.dart';
 
+// events screen shows events in a list and a calendar
 class EventsScreen extends StatefulWidget {
   const EventsScreen({super.key});
 
@@ -32,6 +33,7 @@ class _EventsScreenState extends State<EventsScreen>
   @override
   void initState() {
     super.initState();
+  // set up tabs, events stream, and connectivity subscription
     _tabController = TabController(length: 2, vsync: this);
     _eventsStream = firebaseService.getEventsAsStream();
     _initRole();
@@ -42,6 +44,7 @@ class _EventsScreenState extends State<EventsScreen>
   }
 
   Future<void> _initRole() async {
+  // check if current user is an organiser to enable create/edit
     final isOrg = await firebaseService.isCurrentUserOrganiser();
     if (!mounted) return;
     // to show create event button to organisations
@@ -62,6 +65,7 @@ class _EventsScreenState extends State<EventsScreen>
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(48),
         child: SafeArea(
+      // top tabs for list and calendar views
           child: TabBar(
             controller: _tabController,
             labelColor: scheme.primary,
@@ -74,6 +78,7 @@ class _EventsScreenState extends State<EventsScreen>
       ),
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 8.0),
+    // stream events and render tabs
         child: StreamBuilder<List<Event>>(
           stream: _eventsStream,
           initialData: [],
@@ -96,6 +101,7 @@ class _EventsScreenState extends State<EventsScreen>
             }
 
             // make it the current day if nothing is chosen if not make it the selected day
+      // compute the key for the selected day in the calendar map
             final selectedDayKey =
                 _selectedDay == null
                     ? DateTime(
@@ -113,12 +119,14 @@ class _EventsScreenState extends State<EventsScreen>
             return TabBarView(
               controller: _tabController,
               children: [
-                // Portrait uses single column list, landscape uses 2-column rows
+        // portrait uses single column list, landscape uses 2-column rows
                 Builder(
                   builder: (context) {
+          // single event tile with optional organiser menu
                     Widget buildEventTile(Event event) {
                       return InkWell(
                         onTap: () {
+              // open event details
                           Navigator.of(context).push(
                             MaterialPageRoute(
                               builder:
@@ -133,6 +141,7 @@ class _EventsScreenState extends State<EventsScreen>
                               _isOrganiser
                                   ? PopupMenuButton<String>(
                                     onSelected: (value) async {
+                    // guard actions when offline
                                       if (!_online) {
                                         ScaffoldMessenger.maybeOf(
                                           context,
@@ -179,7 +188,7 @@ class _EventsScreenState extends State<EventsScreen>
                     }
 
                     if (!isLandscape) {
-                      // Portrait: original single list
+            // original single list for potrait
                       return ListView.builder(
                         itemCount: (events.isEmpty ? 1 : events.length) + 1,
                         itemBuilder: (context, index) {
@@ -212,7 +221,7 @@ class _EventsScreenState extends State<EventsScreen>
                       );
                     }
 
-                    // Landscape: 2 horizontally events (pair per row)
+                    // 2 horizontally events for landscape
                     final rowsCount = (events.length + 1) ~/ 2;
                     return ListView.builder(
                       itemCount: 1 + (rowsCount == 0 ? 1 : rowsCount),
@@ -262,7 +271,7 @@ class _EventsScreenState extends State<EventsScreen>
                     );
                   },
                 ),
-                // Calendar tab
+                // calendar tab
                 !isLandscape
                     ? Column(
                       children: [
@@ -289,6 +298,7 @@ class _EventsScreenState extends State<EventsScreen>
                             markerBuilder: (context, day, events) {
                               if (events.isEmpty)
                                 return const SizedBox.shrink();
+                              // small dots indicate events on a day
                               final color =
                                   Theme.of(context).colorScheme.primary;
                               final maxDots = 3;
@@ -318,15 +328,18 @@ class _EventsScreenState extends State<EventsScreen>
                             },
                           ),
                           onDaySelected: (selectedDay, focusedDay) {
+                            // update selection and focused month
                             setState(() {
                               _selectedDay = selectedDay;
                               _focusedDay = focusedDay;
                             });
                           },
                           onFormatChanged: (format) {
+                            // switch between month/2 weeks/week views
                             setState(() => _calFormat = format);
                           },
                           onPageChanged: (focusedDay) {
+                            // keep track of current month page
                             _focusedDay = focusedDay;
                           },
                         ),
@@ -344,6 +357,7 @@ class _EventsScreenState extends State<EventsScreen>
                                       final event = byDay[selectedDayKey]![idx];
                                       return InkWell(
                                         onTap: () {
+                                          // open details from calendar list
                                           Navigator.of(context).push(
                                             MaterialPageRoute(
                                               builder:
@@ -359,6 +373,7 @@ class _EventsScreenState extends State<EventsScreen>
                                               _isOrganiser
                                                   ? PopupMenuButton<String>(
                                                     onSelected: (value) async {
+                                                      // guard actions when offline
                                                       if (!_online) {
                                                         ScaffoldMessenger.maybeOf(
                                                           context,
@@ -450,6 +465,7 @@ class _EventsScreenState extends State<EventsScreen>
                               markerBuilder: (context, day, events) {
                                 if (events.isEmpty)
                                   return const SizedBox.shrink();
+                                // small dots indicate events on a day
                                 final color =
                                     Theme.of(context).colorScheme.primary;
                                 final maxDots = 3;
@@ -479,15 +495,18 @@ class _EventsScreenState extends State<EventsScreen>
                               },
                             ),
                             onDaySelected: (selectedDay, focusedDay) {
+                              // update selection and focused month
                               setState(() {
                                 _selectedDay = selectedDay;
                                 _focusedDay = focusedDay;
                               });
                             },
                             onFormatChanged: (format) {
+                              // switch between month/2 weeks/week views
                               setState(() => _calFormat = format);
                             },
                             onPageChanged: (focusedDay) {
+                              // keep track of current month page
                               _focusedDay = focusedDay;
                             },
                           ),
@@ -507,6 +526,7 @@ class _EventsScreenState extends State<EventsScreen>
                                       final event = byDay[selectedDayKey]![idx];
                                       return InkWell(
                                         onTap: () {
+                                          // open details from calendar list
                                           Navigator.of(context).push(
                                             MaterialPageRoute(
                                               builder:
@@ -522,6 +542,7 @@ class _EventsScreenState extends State<EventsScreen>
                                               _isOrganiser
                                                   ? PopupMenuButton<String>(
                                                     onSelected: (value) async {
+                                                      // guard actions when offline
                                                       if (!_online) {
                                                         ScaffoldMessenger.maybeOf(
                                                           context,
@@ -584,6 +605,7 @@ class _EventsScreenState extends State<EventsScreen>
           },
         ),
       ),
+      // show create event button for organisers when online
       floatingActionButton:
           (!_loadingRole && _isOrganiser)
               ? FloatingActionButton(
@@ -593,6 +615,7 @@ class _EventsScreenState extends State<EventsScreen>
                     !_online
                         ? null
                         : () {
+                          // open create event form
                           Navigator.of(context).push(
                             MaterialPageRoute(
                               builder: (_) => const CreateEventScreen(),

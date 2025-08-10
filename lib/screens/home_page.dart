@@ -27,7 +27,6 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     var scheme = Theme.of(context).colorScheme;
     var texttheme = Theme.of(context).textTheme;
-    // var nav = Navigator.of(context);
 
     // Each screen in the bottom navigation bar has different app bars
 

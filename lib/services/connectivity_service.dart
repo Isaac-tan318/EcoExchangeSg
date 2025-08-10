@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:connectivity_plus/connectivity_plus.dart';
 
 class ConnectivityService {
+  //  allow multiple listeners 
   final _controller = StreamController<bool>.broadcast();
   late final StreamSubscription _sub;
 
@@ -10,7 +11,7 @@ class ConnectivityService {
       final offline = result.contains(ConnectivityResult.none);
       _controller.add(!offline);
     });
-    // Prime current state
+    // get current state ready
     Connectivity().checkConnectivity().then((result) {
       final offline = result.contains(ConnectivityResult.none);
       _controller.add(!offline);

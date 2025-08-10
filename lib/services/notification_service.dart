@@ -12,10 +12,10 @@ class NotificationService {
   bool _primed = false;
 
   Future<void> init() async {
-    if (kIsWeb) return; // local notifications not supported on Flutter web
+    if (kIsWeb)
+      return; //  notifications not supported on web, just return when its on web
     if (_initialized) return;
 
-    // Use the app launcher icon for notifications by default
     const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
     const iosInit = DarwinInitializationSettings();
     const initSettings = InitializationSettings(
@@ -34,10 +34,10 @@ class NotificationService {
     if (prefs.getBool(key) == true) return;
 
     try {
-      // Unified permission request using permission_handler
+      // permission request
       final status = await Permission.notification.request();
       if (status.isDenied || status.isPermanentlyDenied) {
-        // Optionally, guide users to settings
+        // guide users to settings if fail
       }
     } catch (_) {
       // ignore errors to avoid blocking login
@@ -47,7 +47,6 @@ class NotificationService {
   }
 
   Future<void> startListeningForNewEvents() async {
-    // init is a no-op on Web; still safe to call
     await init();
 
     _eventsStream ??=
@@ -58,7 +57,7 @@ class NotificationService {
             .snapshots();
 
     _eventsStream!.listen((snapshot) async {
-      // On first snapshot, seed last seen without notifying
+      // initialise first item if its the first time
       if (!_primed) {
         _primed = true;
         if (snapshot.docs.isNotEmpty) {
@@ -70,23 +69,22 @@ class NotificationService {
       if (snapshot.docChanges.isEmpty) return;
       final prefs = await SharedPreferences.getInstance();
       final lastId = prefs.getString('lastNotifiedEventId');
+      // go through changes
       for (final change in snapshot.docChanges) {
         if (change.type == DocumentChangeType.added) {
           final data = change.doc.data();
-          final title = (data?['title']?.toString() ?? 'Untitled');
+          final title = (data?['title']!.toString());
           final bodyMsg =
               'A new event has been posted! Check out ($title) on EcoExchangeSg now!';
           if (change.doc.id != lastId) {
             if (kIsWeb) {
-              // For Web: print to console instead of using local notifications
-              // so you can see the detection without additional setup.
-              // Example output: [New Event Detected] Title - Description
-              // ignore: avoid_print
+              // print to console for web instead of using notifications
               print('[New Event] $bodyMsg');
             } else {
-              // Mobile local notification
+              // send notification
               await _showNotification(title: 'EcoExchangeSg', body: bodyMsg);
             }
+            // set so next notification is accurate
             await prefs.setString('lastNotifiedEventId', change.doc.id);
           }
         }
@@ -94,6 +92,7 @@ class NotificationService {
     });
   }
 
+  // actual notification
   Future<void> _showNotification({
     required String title,
     required String body,
@@ -104,8 +103,8 @@ class NotificationService {
       channelDescription: 'Notifications for new events',
       importance: Importance.high,
       priority: Priority.high,
-      icon: '@mipmap/ic_launcher',
-      largeIcon: DrawableResourceAndroidBitmap('ic_launcher'),
+      // show the app icon
+      largeIcon: DrawableResourceAndroidBitmap('android12splash'),
     );
     const iosDetails = DarwinNotificationDetails();
     const details = NotificationDetails(

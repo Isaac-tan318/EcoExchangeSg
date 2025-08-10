@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_application_1/models/event.dart';
+import 'package:flutter_application_1/models/event_model.dart';
 import 'package:flutter_application_1/utils/date_formats.dart';
 import 'dart:convert';
 

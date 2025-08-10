@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_application_1/models/post.dart';
+import 'package:flutter_application_1/models/post_model.dart';
 import 'package:flutter_application_1/screens/edit_post_screen.dart';
 import 'package:flutter_application_1/screens/post_details_screen.dart';
 import 'package:flutter_application_1/services/firebase_service.dart';
@@ -156,16 +156,20 @@ class _UserPostWidgetState extends State<UserPostWidget> {
           children: [
             Row(
               children: [
-                Text(
-                  widget.post.title?.toString() ?? '',
-                  style: TextStyle(
-                    fontSize: texttheme.headlineMedium!.fontSize,
-                    fontWeight: FontWeight.w100,
-                    color: scheme.onSurface,
+                Expanded(
+                  child: Text(
+                    widget.post.title?.toString() ?? '',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    softWrap: false,
+                    style: TextStyle(
+                      fontSize: texttheme.headlineMedium!.fontSize,
+                      fontWeight: FontWeight.w100,
+                      color: scheme.onSurface,
+                    ),
                   ),
                 ),
-
-                Expanded(child: Container()),
+                const SizedBox(width: 8),
 
                 IconButton(
                   icon: const Icon(Icons.edit),

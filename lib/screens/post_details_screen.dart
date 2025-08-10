@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_application_1/models/post.dart';
+import 'package:flutter_application_1/models/post_model.dart';
 import 'package:flutter_application_1/services/firebase_service.dart';
 import 'package:get_it/get_it.dart';
 import 'package:flutter_application_1/screens/edit_post_screen.dart';
@@ -9,7 +9,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_application_1/services/connectivity_service.dart';
 import 'package:flutter_application_1/services/tts_service.dart';
 import 'dart:async';
-import 'package:flutter_application_1/widgets/nets_qr.dart';
+import 'package:flutter_application_1/widgets/nets_qr_widget.dart';
 
 class PostDetailsScreen extends StatefulWidget {
   static const routeName = '/postDetails';
@@ -30,7 +30,7 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
   @override
   void initState() {
     super.initState();
-    // Subscribe to connectivity offline mode handling
+  // subscribe to connectivity updates
     _connSub = GetIt.instance<ConnectivityService>().isOnline$.listen((
       isOnline,
     ) {
@@ -38,14 +38,13 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
       setState(() => _online = isOnline);
     });
 
-    // Acquire the shared Text-to-Speech service instance for reading content aloud.
+  // get shared tts service
     _tts = GetIt.instance<TtsService>();
   }
 
   @override
   void dispose() {
-    // Stop any ongoing speech and cancel the connectivity subscription
-    // to prevent memory leaks when this page is disposed.
+  // stop speech and cancel subscription
     _tts?.stop();
     _connSub?.cancel();
     super.dispose();
@@ -61,43 +60,122 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
     );
     const toEmail = 'ecohubsg1@gmail.com';
 
-    if (kIsWeb) {
-      final gmailUrl = Uri.parse(
-        'https://mail.google.com/mail/?view=cm&fs=1&to=$toEmail&su=$subject&body=$body',
-      );
-      final ok = await launchUrl(
-        gmailUrl,
-        mode: LaunchMode.externalApplication,
-      );
-      if (!ok && mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Could not open Gmail.')));
+    Future<bool> _openGmail() async {
+      if (kIsWeb) {
+        final url = Uri.parse(
+          'https://mail.google.com/mail/?view=cm&fs=1&to=$toEmail&su=$subject&body=$body',
+        );
+        return launchUrl(url, mode: LaunchMode.externalApplication);
       }
-      return;
+      // Use the Gmail app
+      final uris = <Uri>[
+        Uri.parse('gmail://co?to=$toEmail&subject=$subject&body=$body'),
+        Uri.parse('googlegmail://co?to=$toEmail&subject=$subject&body=$body'),
+      ];
+      for (final u in uris) {
+        if (await canLaunchUrl(u)) {
+          if (await launchUrl(u, mode: LaunchMode.externalApplication)) {
+            return true;
+          }
+        }
+      }
+      return false;
     }
 
-    // different uris used by different devices
-    final gmailUris = <Uri>[
-      Uri.parse('gmail://co?to=$toEmail&subject=$subject&body=$body'),
-      Uri.parse('googlegmail://co?to=$toEmail&subject=$subject&body=$body'),
-    ];
-    for (final u in gmailUris) {
-      final canOpen = await canLaunchUrl(u);
-      if (canOpen) {
-        final ok = await launchUrl(u, mode: LaunchMode.externalApplication);
-        if (ok) return;
+    Future<bool> _openOutlook() async {
+      if (kIsWeb) {
+        final url = Uri.parse(
+          'https://outlook.office.com/mail/deeplink/compose?to=$toEmail&subject=$subject&body=$body',
+        );
+        return launchUrl(url, mode: LaunchMode.externalApplication);
       }
+      final u = Uri.parse(
+        'ms-outlook://compose?to=$toEmail&subject=$subject&body=$body',
+      );
+      if (await canLaunchUrl(u)) {
+        return launchUrl(u, mode: LaunchMode.externalApplication);
+      }
+      return false;
     }
-    final mailtoUri = Uri.parse('mailto:$toEmail?subject=$subject&body=$body');
-    final ok = await launchUrl(mailtoUri, mode: LaunchMode.externalApplication);
+
+    Future<bool> _openYahoo() async {
+      if (kIsWeb) {
+        final url = Uri.parse(
+          'https://compose.mail.yahoo.com/?to=$toEmail&subject=$subject&body=$body',
+        );
+        return launchUrl(url, mode: LaunchMode.externalApplication);
+      }
+      final u = Uri.parse(
+        'ymail://mail/compose?to=$toEmail&subject=$subject&body=$body',
+      );
+      if (await canLaunchUrl(u)) {
+        return launchUrl(u, mode: LaunchMode.externalApplication);
+      }
+      return false;
+    }
+
+    Future<bool> _openDefault() async {
+      final mailtoUri = Uri.parse('mailto:$toEmail?subject=$subject&body=$body');
+      return launchUrl(mailtoUri, mode: LaunchMode.externalApplication);
+    }
+
+  // present options to pick an email app
+    if (!mounted) return;
+    final choice = await showModalBottomSheet<String>(
+      context: context,
+  builder: (ctx) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.alternate_email),
+        title: const Text('Gmail'),
+                onTap: () => Navigator.pop(ctx, 'gmail'),
+              ),
+              ListTile(
+                leading: const Icon(Icons.mail_outline),
+        title: const Text('Outlook'),
+                onTap: () => Navigator.pop(ctx, 'outlook'),
+              ),
+              ListTile(
+                leading: const Icon(Icons.mark_email_read_outlined),
+        title: const Text('Yahoo Mail'),
+                onTap: () => Navigator.pop(ctx, 'yahoo'),
+              ),
+              const Divider(height: 1),
+              ListTile(
+                leading: const Icon(Icons.email),
+        title: const Text('Default Email (chooser)'),
+                onTap: () => Navigator.pop(ctx, 'default'),
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        );
+      },
+    );
+    if (choice == null) return;
+
+    bool ok = false;
+    if (choice == 'gmail') ok = await _openGmail();
+    if (!ok && choice == 'outlook') ok = await _openOutlook();
+    if (!ok && choice == 'yahoo') ok = await _openYahoo();
+    if (!ok && choice == 'default') ok = await _openDefault();
+  // fallback chain if chosen app isn't available
+    if (!ok) ok = await _openDefault();
+    if (!ok) ok = await _openGmail();
+    if (!ok) ok = await _openOutlook();
+    if (!ok) ok = await _openYahoo();
+
     if (!ok && mounted) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('No email app available.')));
+      ScaffoldMessenger.of(context).showSnackBar(
+    const SnackBar(content: Text('No email app available.')),
+      );
     }
   }
 
+// get relative time string
   String _relativeTime(DateTime date) {
     final now = DateTime.now();
     var diff = now.difference(date);
@@ -136,19 +214,19 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
         final appBar = AppBar(
           backgroundColor: scheme.primary,
           foregroundColor: scheme.onPrimary,
-          title: const Text('Post Details'),
+      title: const Text('Post Details'),
           actions: [
             if (snapshot.connectionState == ConnectionState.done &&
                 snapshot.data != null)
               IconButton(
-                tooltip: 'Report',
+        tooltip: 'Report',
                 icon: const Icon(Icons.flag_outlined),
                 onPressed: () => _reportPost(snapshot.data!),
               ),
             if (snapshot.connectionState == ConnectionState.done &&
                 snapshot.data != null)
               IconButton(
-                tooltip: 'Listen',
+        tooltip: 'Listen',
                 icon: const Icon(Icons.volume_up_outlined),
                 onPressed: () {
                   final p = snapshot.data!;
@@ -161,6 +239,7 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
           ],
         );
 
+// show loading state
         if (snapshot.connectionState == ConnectionState.waiting) {
           return Scaffold(
             appBar: appBar,
@@ -198,8 +277,8 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
           );
         }
 
-        // Header segment without image; description will be placed differently
-        // in portrait vs landscape to preserve original order.
+  // header segment without image, description is placed differently
+  // in portrait vs landscape to preserve original order
         final List<Widget> headerWidgets = [
           Align(
             alignment: Alignment.centerRight,
@@ -214,7 +293,7 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
                     final textTheme = Theme.of(ctx).textTheme;
                     final isLandscape =
                         MediaQuery.of(ctx).orientation == Orientation.landscape;
-                    // Build common instructions column (without info image; we place it conditionally)
+                    // common instructions column (without info image; placed conditionally)
                     final instructions = Column(
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -232,12 +311,17 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
                           try {
                             await GetIt.instance<FirebaseService>()
                                 .incrementPostAwards(widget.postId);
+                            // Also increment the recipient user's awards count
+                            final authorId = post.authorId;
+                            if (authorId != null &&
+                                authorId.toString().isNotEmpty) {
+                              await GetIt.instance<FirebaseService>()
+                                  .incrementUserAwards(authorId);
+                            }
                             if (mounted) Navigator.of(ctx).pop();
                             if (!mounted) return;
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Thanks for your award!'),
-                              ),
+                              const SnackBar(content: Text('Thanks for your award!')),
                             );
                           } catch (e) {
                             if (!mounted) return;
@@ -278,8 +362,7 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
                           ),
                         ],
                       );
-                    }
-                    else {
+                    } else {
                       content = instructions;
                     }
                     return Padding(
@@ -330,24 +413,22 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
               const Spacer(),
               if (post.authorId == service.getCurrentUser()?.uid) ...[
                 TextButton.icon(
-                  onPressed: _deleting || !_online
-                      ? null
-                      : () async {
-                          final navigator = Navigator.of(context);
-                          final updated = await navigator.pushNamed(
-                            EditPost.routeName,
-                            arguments: {
-                              'postId': widget.postId,
-                              'post': post,
-                            },
-                          );
-                          if (updated == true && mounted) setState(() {});
-                        },
+                  onPressed:
+                      _deleting || !_online
+                          ? null
+                          : () async {
+                            final navigator = Navigator.of(context);
+                            final updated = await navigator.pushNamed(
+                              EditPost.routeName,
+                              arguments: {
+                                'postId': widget.postId,
+                                'post': post,
+                              },
+                            );
+                            if (updated == true && mounted) setState(() {});
+                          },
                   icon: Icon(Icons.edit, color: scheme.primary),
-                  label: Text(
-                    'Edit',
-                    style: TextStyle(color: scheme.primary),
-                  ),
+                  label: Text('Edit', style: TextStyle(color: scheme.primary)),
                 ),
                 const SizedBox(width: 8),
                 if (_deleting)
@@ -356,82 +437,79 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
                     height: 20,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                        scheme.error,
-                      ),
+                      valueColor: AlwaysStoppedAnimation<Color>(scheme.error),
                     ),
                   )
                 else
                   TextButton.icon(
-                    onPressed: !_online
-                        ? null
-                        : () async {
-                            final navigator = Navigator.of(context);
-                            final messenger =
-                                ScaffoldMessenger.maybeOf(context);
-                            final confirm = await showDialog<bool>(
-                              context: context,
-                              builder: (ctx) {
-                                final scheme = Theme.of(ctx).colorScheme;
-                                final textTheme = Theme.of(ctx).textTheme;
-                                return AlertDialog(
-                                  backgroundColor:
-                                      scheme.surfaceContainerHigh,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(16),
-                                  ),
-                                  title: Text(
-                                    'Delete Post',
-                                    style: textTheme.titleLarge?.copyWith(
-                                      color: scheme.onSurface,
-                                    ),
-                                  ),
-                                  content: Text(
-                                    'Are you sure you want to delete this post?',
-                                    style: textTheme.bodyMedium?.copyWith(
-                                      color: scheme.onSurfaceVariant,
-                                    ),
-                                  ),
-                                  actions: [
-                                    TextButton(
-                                      onPressed: () =>
-                                          Navigator.of(ctx).pop(false),
-                                      child: const Text('Cancel'),
-                                    ),
-                                    FilledButton(
-                                      onPressed: () =>
-                                          Navigator.of(ctx).pop(true),
-                                      style: FilledButton.styleFrom(
-                                        backgroundColor: scheme.error,
-                                        foregroundColor: scheme.onError,
-                                      ),
-                                      child: const Text('Delete'),
-                                    ),
-                                  ],
-                                );
-                              },
-                            );
-                            if (confirm != true) return;
-                            setState(() => _deleting = true);
-                            try {
-                              await service.deletePost(widget.postId);
-                              // Return to the previous screen instead of the very first (Login)
-                              navigator.pop(true);
-                            } catch (e) {
-                              if (!mounted) return;
-                              setState(() => _deleting = false);
-                              messenger?.showSnackBar(
-                                SnackBar(
-                                  content: Text('Failed to delete: $e'),
-                                ),
+                    onPressed:
+                        !_online
+                            ? null
+                            : () async {
+                              final navigator = Navigator.of(context);
+                              final messenger = ScaffoldMessenger.maybeOf(
+                                context,
                               );
-                            }
-                          },
+                              final confirm = await showDialog<bool>(
+                                context: context,
+                                builder: (ctx) {
+                                  final scheme = Theme.of(ctx).colorScheme;
+                                  final textTheme = Theme.of(ctx).textTheme;
+                                  return AlertDialog(
+                                    backgroundColor:
+                                        scheme.surfaceContainerHigh,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(16),
+                                    ),
+                                    title: Text(
+                                      'Delete Post',
+                                      style: textTheme.titleLarge?.copyWith(
+                                        color: scheme.onSurface,
+                                      ),
+                                    ),
+                                    content: Text(
+                                      'Are you sure you want to delete this post?',
+                                      style: textTheme.bodyMedium?.copyWith(
+                                        color: scheme.onSurfaceVariant,
+                                      ),
+                                    ),
+                                    actions: [
+                                      TextButton(
+                                        onPressed:
+                                            () => Navigator.of(ctx).pop(false),
+                                        child: const Text('Cancel'),
+                                      ),
+                                      FilledButton(
+                                        onPressed:
+                                            () => Navigator.of(ctx).pop(true),
+                                        style: FilledButton.styleFrom(
+                                          backgroundColor: scheme.error,
+                                          foregroundColor: scheme.onError,
+                                        ),
+                                        child: const Text('Delete'),
+                                      ),
+                                    ],
+                                  );
+                                },
+                              );
+                              if (confirm != true) return;
+                              setState(() => _deleting = true);
+                              try {
+                                await service.deletePost(widget.postId);
+                                // Return to the previous screen instead of the very first (Login)
+                                navigator.pop(true);
+                              } catch (e) {
+                                if (!mounted) return;
+                                setState(() => _deleting = false);
+                                messenger?.showSnackBar(
+                                  SnackBar(
+                                    content: Text('Failed to delete: $e'),
+                                  ),
+                                );
+                              }
+                            },
                     icon: Icon(Icons.delete, color: scheme.error),
-                    label: Text(
-                      'Delete',
-                      style: TextStyle(color: scheme.error),
-                    ),
+                    label: Text('Delete', style: TextStyle(color: scheme.error)),
                   ),
               ],
             ],
@@ -443,8 +521,9 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
           appBar: appBar,
           body: SingleChildScrollView(
             padding: const EdgeInsets.all(16),
-            child: isLandscape
-                ? Row(
+            child:
+                isLandscape
+                    ? Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         if ((post.imageBase64 ?? '').isNotEmpty)
@@ -468,7 +547,7 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
                         ),
                       ],
                     )
-                : Column(
+                    : Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         ...headerWidgets,

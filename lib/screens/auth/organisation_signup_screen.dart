@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/services/firebase_service.dart';
-import 'package:flutter_application_1/widgets/textfield.dart';
+import 'package:flutter_application_1/widgets/textfield_widget.dart';
 import 'package:get_it/get_it.dart';
 import 'organisation_login_screen.dart';
 

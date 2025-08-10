@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
-import 'package:flutter_application_1/widgets/textfield.dart';
+import 'package:flutter_application_1/widgets/textfield_widget.dart';
 
 class PostForm extends StatelessWidget {
   final GlobalKey<FormState> formKey;
@@ -57,7 +57,9 @@ class PostForm extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 10),
-            if (showImage && imageBase64 != null && imageBase64!.isNotEmpty) ...[
+            if (showImage &&
+                imageBase64 != null &&
+                imageBase64!.isNotEmpty) ...[
               ClipRRect(
                 borderRadius: BorderRadius.circular(12),
                 child: AspectRatio(

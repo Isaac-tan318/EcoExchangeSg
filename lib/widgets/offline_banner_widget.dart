@@ -3,7 +3,11 @@ import 'package:get_it/get_it.dart';
 import 'package:flutter_application_1/services/connectivity_service.dart';
 
 class OfflineBannerOverlay extends StatefulWidget {
-  const OfflineBannerOverlay({super.key});
+  final Alignment alignment;
+  const OfflineBannerOverlay({
+    super.key,
+    this.alignment = Alignment.bottomCenter,
+  });
 
   @override
   State<OfflineBannerOverlay> createState() => _OfflineBannerOverlayState();
@@ -26,24 +30,28 @@ class _OfflineBannerOverlayState extends State<OfflineBannerOverlay> {
   Widget build(BuildContext context) {
     if (_online) return const SizedBox.shrink();
     final scheme = Theme.of(context).colorScheme;
-    // If there's a BottomNavigationBar in the nearest Scaffold, offset the banner
-    // so it sits above it (not overlapping or inside it).
-    final scaffold = context.findAncestorWidgetOfExactType<Scaffold>();
-    final hasBottomNav = scaffold?.bottomNavigationBar != null;
-    final bottomMargin =
-        hasBottomNav
-            ? (8.0 +
-                kBottomNavigationBarHeight +
-                8.0) // base 8 + nav height + extra spacing
-            : 8.0;
+    // Compute margin depending on placement. If centered, use symmetric margin.
+    double bottomMargin = 8.0;
+    EdgeInsets containerMargin;
+    if (widget.alignment == Alignment.bottomCenter) {
+      // If there's a BottomNavigationBar in the nearest Scaffold, offset the banner
+      // so it sits above it (not overlapping or inside it).
+      final scaffold = context.findAncestorWidgetOfExactType<Scaffold>();
+      final hasBottomNav = scaffold?.bottomNavigationBar != null;
+      bottomMargin =
+          hasBottomNav ? (8.0 + kBottomNavigationBarHeight + 8.0) : 8.0;
+      containerMargin = EdgeInsets.fromLTRB(8, 8, 8, bottomMargin);
+    } else {
+      containerMargin = const EdgeInsets.all(16);
+    }
     return SafeArea(
       child: Align(
-        alignment: Alignment.bottomCenter,
+        alignment: widget.alignment,
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: double.infinity),
           child: Container(
             width: double.infinity,
-            margin: EdgeInsets.fromLTRB(8, 8, 8, bottomMargin),
+            margin: containerMargin,
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
               color: scheme.errorContainer,

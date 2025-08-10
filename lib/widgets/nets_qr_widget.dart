@@ -4,8 +4,8 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/services/nets_service.dart';
-import 'package:flutter_application_1/widgets/nets_fail.dart';
-import 'package:flutter_application_1/widgets/nets_success.dart';
+import 'package:flutter_application_1/widgets/nets_fail_widget.dart';
+import 'package:flutter_application_1/widgets/nets_success_widget.dart';
 import 'package:get_it/get_it.dart';
 import 'package:http/http.dart';
 
@@ -125,10 +125,7 @@ class _NETSQRState extends State<NETSQR> {
           SizedBox(
             width: contentWidth,
             height: contentWidth,
-            child: Image.memory(
-              qrCode!,
-              fit: BoxFit.contain,
-            ),
+            child: Image.memory(qrCode!, fit: BoxFit.contain),
           ),
         if (responseCode != '00')
           Center(

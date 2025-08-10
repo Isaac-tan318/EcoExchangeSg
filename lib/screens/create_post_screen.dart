@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/screens/home_page.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter_application_1/models/post.dart';
+import 'package:flutter_application_1/models/post_model.dart';
 import 'package:flutter_application_1/services/firebase_service.dart';
-import 'package:flutter_application_1/widgets/post_form.dart';
+import 'package:flutter_application_1/widgets/post_form_widget.dart';
 import 'package:get_it/get_it.dart';
 import 'dart:convert';
 import 'package:image_picker/image_picker.dart';
@@ -116,9 +116,37 @@ class _CreatePostState extends State<CreatePost> {
 
   // image picker
   Future<void> _pickImage() async {
+    if (!_online) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Offline: cannot pick images.')),
+      );
+      return;
+    }
+    final source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo_camera),
+              title: const Text('Camera'),
+              onTap: () => Navigator.pop(ctx, ImageSource.camera),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library),
+              title: const Text('Gallery'),
+              onTap: () => Navigator.pop(ctx, ImageSource.gallery),
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+    if (source == null) return;
     try {
       final XFile? picked = await _picker.pickImage(
-        source: ImageSource.gallery,
+        source: source,
         imageQuality: 85,
         maxWidth: 2000,
         maxHeight: 2000,
@@ -137,8 +165,8 @@ class _CreatePostState extends State<CreatePost> {
   Widget build(BuildContext context) {
     var scheme = Theme.of(context).colorScheme;
     var texttheme = Theme.of(context).textTheme;
-  final isLandscape =
-    MediaQuery.of(context).orientation == Orientation.landscape;
+    final isLandscape =
+        MediaQuery.of(context).orientation == Orientation.landscape;
     // Navigator instance obtained where needed
 
     return Scaffold(
@@ -208,45 +236,48 @@ class _CreatePostState extends State<CreatePost> {
                 padding: const EdgeInsets.only(bottom: 100),
                 child: ConstrainedBox(
                   constraints: BoxConstraints(minHeight: constraints.maxHeight),
-                  child: isLandscape
-                      ? Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            if (_imageBase64 != null && _imageBase64!.isNotEmpty)
-                              Expanded(
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(12),
-                                  child: AspectRatio(
-                                    aspectRatio: 1,
-                                    child: Image.memory(
-                                      const Base64Decoder().convert(
-                                        _imageBase64!,
+                  child:
+                      isLandscape
+                          ? Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              if (_imageBase64 != null &&
+                                  _imageBase64!.isNotEmpty)
+                                Expanded(
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(12),
+                                    child: AspectRatio(
+                                      aspectRatio: 1,
+                                      child: Image.memory(
+                                        const Base64Decoder().convert(
+                                          _imageBase64!,
+                                        ),
+                                        fit: BoxFit.cover,
                                       ),
-                                      fit: BoxFit.cover,
                                     ),
                                   ),
                                 ),
+                              if (_imageBase64 != null &&
+                                  _imageBase64!.isNotEmpty)
+                                const SizedBox(width: 16),
+                              Expanded(
+                                flex: 2,
+                                child: PostForm(
+                                  formKey: _formKey,
+                                  titleController: _titleCtrl,
+                                  descriptionController: _descCtrl,
+                                  imageBase64: _imageBase64,
+                                  showImage: false,
+                                ),
                               ),
-                            if (_imageBase64 != null && _imageBase64!.isNotEmpty)
-                              const SizedBox(width: 16),
-                            Expanded(
-                              flex: 2,
-                              child: PostForm(
-                                formKey: _formKey,
-                                titleController: _titleCtrl,
-                                descriptionController: _descCtrl,
-                                imageBase64: _imageBase64,
-                                showImage: false,
-                              ),
-                            ),
-                          ],
-                        )
-                      : PostForm(
-                          formKey: _formKey,
-                          titleController: _titleCtrl,
-                          descriptionController: _descCtrl,
-                          imageBase64: _imageBase64,
-                        ),
+                            ],
+                          )
+                          : PostForm(
+                            formKey: _formKey,
+                            titleController: _titleCtrl,
+                            descriptionController: _descCtrl,
+                            imageBase64: _imageBase64,
+                          ),
                 ),
               ),
         ),

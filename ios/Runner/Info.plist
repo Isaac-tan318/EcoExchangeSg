@@ -52,5 +52,9 @@
 		</array>
 		<key>UIStatusBarHidden</key>
 		<false/>
+		<key>NSCameraUsageDescription</key>
+		<string>This app uses the camera to let you take a photo.</string>
+		<key>NSPhotoLibraryUsageDescription</key>
+		<string>This app needs access to your photo library to choose images.</string>
 	</dict>
 </plist>

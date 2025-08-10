@@ -3,20 +3,23 @@ import 'package:flutter_application_1/screens/auth/add_number_screen.dart';
 import 'package:flutter_application_1/screens/auth/login_screen.dart';
 import 'package:flutter_application_1/screens/edit_information_screen.dart';
 import 'package:flutter_application_1/services/firebase_service.dart';
-import 'package:flutter_application_1/widgets/settings_button.dart';
+import 'package:flutter_application_1/widgets/settings_button_widget.dart';
 import 'package:flutter_application_1/services/theme_service.dart';
 import 'package:get_it/get_it.dart';
 
+// settings screen for appearance and account actions
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    // get theme colors, text styles and services
     final scheme = Theme.of(context).colorScheme;
     final textTheme = Theme.of(context).textTheme;
     final firebaseService = GetIt.instance<FirebaseService>();
 
     return Scaffold(
+      // basic app bar
       appBar: AppBar(
         title: const Text('Settings'),
         leading: const BackButton(),
@@ -25,19 +28,22 @@ class SettingsScreen extends StatelessWidget {
         elevation: 0,
       ),
       backgroundColor: scheme.surface,
+      // dismiss keyboard when tapping outside inputs
       body: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: () => FocusScope.of(context).unfocus(),
         child: SingleChildScrollView(
+          // scroll container for settings content
           padding: const EdgeInsets.symmetric(horizontal: 8.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const SizedBox(height: 24),
-              // Appearance section
+              // appearance section (theme, text size, accent color)
               AnimatedBuilder(
                 animation: GetIt.instance<ThemeService>(),
                 builder: (context, _) {
+                  // theme service and preset options
                   final themeSvc = GetIt.instance<ThemeService>();
                   final seedChoices = <Color>[
                     const Color(0xFF3D8259), // green
@@ -78,6 +84,7 @@ class SettingsScreen extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(height: 8),
+                          // theme mode options
                           Row(
                             children: [
                               Flexible(
@@ -93,7 +100,8 @@ class SettingsScreen extends StatelessWidget {
                                   groupValue: themeSvc.mode,
                                   onChanged: (value) {
                                     FocusScope.of(context).unfocus();
-                                    if (value != null) themeSvc.setThemeMode(value);
+                                    if (value != null)
+                                      themeSvc.setThemeMode(value);
                                   },
                                 ),
                               ),
@@ -110,7 +118,8 @@ class SettingsScreen extends StatelessWidget {
                                   groupValue: themeSvc.mode,
                                   onChanged: (value) {
                                     FocusScope.of(context).unfocus();
-                                    if (value != null) themeSvc.setThemeMode(value);
+                                    if (value != null)
+                                      themeSvc.setThemeMode(value);
                                   },
                                 ),
                               ),
@@ -124,11 +133,15 @@ class SettingsScreen extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(height: 4),
+                          // text size radio options
                           Column(
                             children: [
                               RadioListTile<double>(
                                 contentPadding: EdgeInsets.zero,
-                                title: Text('Small', style: textTheme.bodyLarge),
+                                title: Text(
+                                  'Small',
+                                  style: textTheme.bodyLarge,
+                                ),
                                 value: 0.9,
                                 groupValue: groupScale,
                                 onChanged: (v) {
@@ -138,7 +151,10 @@ class SettingsScreen extends StatelessWidget {
                               ),
                               RadioListTile<double>(
                                 contentPadding: EdgeInsets.zero,
-                                title: Text('Default', style: textTheme.bodyLarge),
+                                title: Text(
+                                  'Default',
+                                  style: textTheme.bodyLarge,
+                                ),
                                 value: 1.0,
                                 groupValue: groupScale,
                                 onChanged: (v) {
@@ -148,7 +164,10 @@ class SettingsScreen extends StatelessWidget {
                               ),
                               RadioListTile<double>(
                                 contentPadding: EdgeInsets.zero,
-                                title: Text('Large', style: textTheme.bodyLarge),
+                                title: Text(
+                                  'Large',
+                                  style: textTheme.bodyLarge,
+                                ),
                                 value: 1.15,
                                 groupValue: groupScale,
                                 onChanged: (v) {
@@ -158,7 +177,10 @@ class SettingsScreen extends StatelessWidget {
                               ),
                               RadioListTile<double>(
                                 contentPadding: EdgeInsets.zero,
-                                title: Text('Extra large', style: textTheme.bodyLarge),
+                                title: Text(
+                                  'Extra large',
+                                  style: textTheme.bodyLarge,
+                                ),
                                 value: 1.3,
                                 groupValue: groupScale,
                                 onChanged: (v) {
@@ -176,6 +198,7 @@ class SettingsScreen extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(height: 8),
+                          // choose accent color (seed) for dynamic color scheme
                           Wrap(
                             spacing: 8,
                             runSpacing: 8,
@@ -193,9 +216,11 @@ class SettingsScreen extends StatelessWidget {
                                       color: seedColor,
                                       shape: BoxShape.circle,
                                       border: Border.all(
-                                        color: themeSvc.seedColor.value == seedColor.value
-                                            ? scheme.onSurface
-                                            : Colors.transparent,
+                                        color:
+                                            themeSvc.seedColor.value ==
+                                                    seedColor.value
+                                                ? scheme.onSurface
+                                                : Colors.transparent,
                                         width: 2,
                                       ),
                                     ),
@@ -210,16 +235,20 @@ class SettingsScreen extends StatelessWidget {
                 },
               ),
               const SizedBox(height: 12),
+              // edit profile information
               SettingsButton(
                 icon: Icons.edit,
                 label: 'Edit information',
                 onPressed: () {
-                  Navigator.of(context).pushNamed(EditInformationScreen.routeName);
+                  Navigator.of(
+                    context,
+                  ).pushNamed(EditInformationScreen.routeName);
                 },
                 textTheme: textTheme,
                 scheme: scheme,
               ),
               const SizedBox(height: 12),
+              // add a phone number to your account
               SettingsButton(
                 icon: Icons.phone,
                 label: 'Add phone number',
@@ -230,6 +259,7 @@ class SettingsScreen extends StatelessWidget {
                 scheme: scheme,
               ),
               const SizedBox(height: 12),
+              // change password with validation dialog
               SettingsButton(
                 icon: Icons.edit,
                 label: 'Change password',
@@ -237,6 +267,7 @@ class SettingsScreen extends StatelessWidget {
                   showDialog(
                     context: context,
                     builder: (dialogCtx) {
+                      // local state for obscuring and form
                       bool obscure = true;
                       final formKey = GlobalKey<FormState>();
                       final newPassController = TextEditingController();
@@ -255,66 +286,99 @@ class SettingsScreen extends StatelessWidget {
                               style: t.titleLarge?.copyWith(color: s.onSurface),
                             ),
                             content: Form(
-                            key: formKey,
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                TextFormField(
-                                  controller: newPassController,
-                                  keyboardType: TextInputType.visiblePassword,
-                                  textInputAction: TextInputAction.next,
-                                  decoration: InputDecoration(
-                                    labelText: 'New Password',
-                                    suffixIcon: IconButton(
-                                      icon: Icon(obscure ? Icons.visibility_off : Icons.visibility),
-                                      onPressed: () => setState(() => obscure = !obscure),
+                              key: formKey,
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  TextFormField(
+                                    controller: newPassController,
+                                    keyboardType: TextInputType.visiblePassword,
+                                    textInputAction: TextInputAction.next,
+                                    decoration: InputDecoration(
+                                      labelText: 'New Password',
+                                      suffixIcon: IconButton(
+                                        icon: Icon(
+                                          obscure
+                                              ? Icons.visibility_off
+                                              : Icons.visibility,
+                                        ),
+                                        // toggle password visibility
+                                        onPressed:
+                                            () => setState(
+                                              () => obscure = !obscure,
+                                            ),
+                                      ),
                                     ),
+                                    obscureText: obscure,
+                                    validator: (value) {
+                                      // basic length checks
+                                      if (value == null || value.isEmpty)
+                                        return 'Password is required';
+                                      if (value.length < 8)
+                                        return 'Password must be at least 8 characters';
+                                      return null;
+                                    },
                                   ),
-                                  obscureText: obscure,
-                                  validator: (value) {
-                                    if (value == null || value.isEmpty) return 'Password is required';
-                                    if (value.length < 8) return 'Password must be at least 8 characters';
-                                    return null;
-                                  },
-                                ),
-                                const SizedBox(height: 12),
-                                TextFormField(
-                                  controller: confirmPassController,
-                                  keyboardType: TextInputType.visiblePassword,
-                                  textInputAction: TextInputAction.done,
-                                  decoration: InputDecoration(
-                                    labelText: 'Confirm New Password',
-                                    suffixIcon: IconButton(
-                                      icon: Icon(obscure ? Icons.visibility_off : Icons.visibility),
-                                      onPressed: () => setState(() => obscure = !obscure),
+                                  const SizedBox(height: 12),
+                                  TextFormField(
+                                    controller: confirmPassController,
+                                    keyboardType: TextInputType.visiblePassword,
+                                    textInputAction: TextInputAction.done,
+                                    decoration: InputDecoration(
+                                      labelText: 'Confirm New Password',
+                                      suffixIcon: IconButton(
+                                        icon: Icon(
+                                          obscure
+                                              ? Icons.visibility_off
+                                              : Icons.visibility,
+                                        ),
+                                        // toggle password visibility
+                                        onPressed:
+                                            () => setState(
+                                              () => obscure = !obscure,
+                                            ),
+                                      ),
                                     ),
+                                    obscureText: obscure,
+                                    validator: (value) {
+                                      // confirm matches new password
+                                      if (value == null || value.isEmpty)
+                                        return 'Please confirm your password';
+                                      if (value != newPassController.text)
+                                        return 'Passwords do not match';
+                                      return null;
+                                    },
                                   ),
-                                  obscureText: obscure,
-                                  validator: (value) {
-                                    if (value == null || value.isEmpty) return 'Please confirm your password';
-                                    if (value != newPassController.text) return 'Passwords do not match';
-                                    return null;
-                                  },
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
-                          ),
                             actions: [
                               FilledButton(
                                 onPressed: () async {
-                                if (!formKey.currentState!.validate()) return;
-                                try {
-                                  await firebaseService.changePassword(newPassController.text);
-                                  if (context.mounted) Navigator.of(context).pop();
-                                } on Exception catch (e) {
+                                  if (!formKey.currentState!.validate()) return;
+                                  try {
+                                    await firebaseService.changePassword(
+                                      newPassController.text,
+                                    );
+                                    if (context.mounted)
+                                      Navigator.of(context).pop();
+                                  } on Exception catch (e) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                          'Error changing password: $e',
+                                        ),
+                                      ),
+                                    );
+                                    return;
+                                  }
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(content: Text('Error changing password: $e')),
+                                    const SnackBar(
+                                      content: Text(
+                                        'Password changed successfully.',
+                                      ),
+                                    ),
                                   );
-                                  return;
-                                }
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Password changed successfully.')),
-                                );
                                 },
                                 child: const Text('Submit'),
                               ),
@@ -329,6 +393,7 @@ class SettingsScreen extends StatelessWidget {
                 scheme: scheme,
               ),
               const SizedBox(height: 12),
+              // logout with confirmation and theme reset
               SettingsButton(
                 icon: Icons.logout,
                 label: 'Logout',
@@ -349,7 +414,9 @@ class SettingsScreen extends StatelessWidget {
                         ),
                         content: Text(
                           'Are you sure you want to log out?',
-                          style: t.bodyMedium?.copyWith(color: s.onSurfaceVariant),
+                          style: t.bodyMedium?.copyWith(
+                            color: s.onSurfaceVariant,
+                          ),
                         ),
                         actions: [
                           TextButton(
@@ -362,9 +429,13 @@ class SettingsScreen extends StatelessWidget {
                               await themeSvc.resetToDefaults();
                               await firebaseService.logOut();
                               if (!ctx.mounted) return;
-                              Navigator.of(ctx).pushReplacementNamed(LoginScreen.routeName);
+                              Navigator.of(
+                                ctx,
+                              ).pushReplacementNamed(LoginScreen.routeName);
                               ScaffoldMessenger.of(ctx).showSnackBar(
-                                const SnackBar(content: Text('Logged out successfully.')),
+                                const SnackBar(
+                                  content: Text('Logged out successfully.'),
+                                ),
                               );
                             },
                             child: const Text('Logout'),
@@ -378,6 +449,7 @@ class SettingsScreen extends StatelessWidget {
                 scheme: scheme,
               ),
               const SizedBox(height: 12),
+              // delete account with confirmation
               SettingsButton(
                 icon: Icons.delete,
                 label: 'Delete account',
@@ -398,7 +470,9 @@ class SettingsScreen extends StatelessWidget {
                         ),
                         content: Text(
                           'Are you sure you want to delete your account? This action cannot be undone.',
-                          style: t.bodyMedium?.copyWith(color: s.onSurfaceVariant),
+                          style: t.bodyMedium?.copyWith(
+                            color: s.onSurfaceVariant,
+                          ),
                         ),
                         actions: [
                           TextButton(
@@ -410,17 +484,25 @@ class SettingsScreen extends StatelessWidget {
                               try {
                                 await firebaseService.deleteAccount();
                                 ScaffoldMessenger.of(ctx).showSnackBar(
-                                  const SnackBar(content: Text('Account deleted successfully.')),
+                                  const SnackBar(
+                                    content: Text(
+                                      'Account deleted successfully.',
+                                    ),
+                                  ),
                                 );
                               } on Exception catch (e) {
                                 Navigator.of(ctx).pop();
                                 ScaffoldMessenger.of(ctx).showSnackBar(
-                                  SnackBar(content: Text('Error deleting account: $e')),
+                                  SnackBar(
+                                    content: Text('Error deleting account: $e'),
+                                  ),
                                 );
                                 return;
                               }
                               if (!ctx.mounted) return;
-                              Navigator.of(ctx).pushReplacementNamed(LoginScreen.routeName);
+                              Navigator.of(
+                                ctx,
+                              ).pushReplacementNamed(LoginScreen.routeName);
                             },
                             style: FilledButton.styleFrom(
                               backgroundColor: s.error,

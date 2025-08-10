@@ -3,9 +3,9 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'package:flutter_application_1/models/user.dart' as UserModel;
-import 'package:flutter_application_1/models/event.dart' as EventModel;
-import 'package:flutter_application_1/models/post.dart';
+import 'package:flutter_application_1/models/user_model.dart' as UserModel;
+import 'package:flutter_application_1/models/event_model.dart' as EventModel;
+import 'package:flutter_application_1/models/post_model.dart';
 
 class FirebaseService {
   // Firestore collection for posts
@@ -22,7 +22,7 @@ class FirebaseService {
     String username,
     String role,
   ) async {
-    // Create user with email and password in auth
+    // create user with email and password in auth
     UserCredential userCredential = await FirebaseAuth.instance
         .createUserWithEmailAndPassword(email: email, password: password);
     // Add user info to Firestore 'users' collection
@@ -34,6 +34,7 @@ class FirebaseService {
   }
 
   Future<UserCredential> login(email, password, role) async {
+  // login with email and password and check role
     var userCredentials = await FirebaseAuth.instance
         .signInWithEmailAndPassword(email: email, password: password);
 
@@ -56,6 +57,7 @@ class FirebaseService {
   }
 
   Future<UserCredential> signInWithGoogle(String role) async {
+  // sign in with google and create user if its first login
     UserCredential userCredential;
     if (kIsWeb) {
       GoogleAuthProvider googleProvider = GoogleAuthProvider();
@@ -101,15 +103,18 @@ class FirebaseService {
   }
 
   Stream<User?> getAuthUser() {
+  // stream auth state changes for the current user
     return FirebaseAuth.instance.authStateChanges();
   }
 
   User? getCurrentUser() {
+  // get the current authenticated user or null
     return FirebaseAuth.instance.currentUser;
   }
 
   // Role helpers
   Future<String?> _getCurrentUserRole() async {
+  // get the role of the current user from firestore
     final user = getCurrentUser();
     if (user == null) return null;
     try {
@@ -125,6 +130,7 @@ class FirebaseService {
   }
 
   Future<bool> isCurrentUserOrganiser() async {
+  // check if the current user is an organiser
     final role = await _getCurrentUserRole();
     return role == 'organiser' || role == 'organizer';
   }
@@ -154,6 +160,12 @@ class FirebaseService {
           bio:
               (data['bio'] ??
                   "Environmental advocate passionate in promoting sustainable living and conservation"),
+          awards:
+              (data['awards'] is int)
+                  ? data['awards'] as int
+                  : ((data['awards'] is num)
+                      ? (data['awards'] as num).toInt()
+                      : 0),
           posts: const [],
         );
       } else {
@@ -163,6 +175,7 @@ class FirebaseService {
           username: 'Unknown User',
           bio:
               "Environmental advocate passionate in promoting sustainable living and conservation",
+          awards: 0,
           posts: const [],
         );
       }
@@ -174,6 +187,7 @@ class FirebaseService {
     Future<String> Function(BuildContext context) getOtpFromUser,
     BuildContext context,
   ) async {
+  // login using phone number and otp 
     FirebaseAuth auth = FirebaseAuth.instance;
 
     if (kIsWeb) {
@@ -253,7 +267,7 @@ class FirebaseService {
           throw Exception("Failed to link phone number: ${e.message}");
         }
       }
-      // For mobile platforms, verifyPhoneNumber method is used instead
+      // verifyPhoneNumber method is used on mobile 
     } else {
       await auth.verifyPhoneNumber(
         phoneNumber: phoneNumber,
@@ -294,19 +308,23 @@ class FirebaseService {
   }
 
   Future<void> logOut() {
+  // sign out the current user
     return FirebaseAuth.instance.signOut();
   }
 
   Future<void> forgotPassword(String email) {
+  // send a password reset email
     return FirebaseAuth.instance.sendPasswordResetEmail(email: email);
   }
 
   Future<void> changePassword(String newPassword) {
+  // update the current user's password
     User? user = FirebaseAuth.instance.currentUser;
     return user!.updatePassword(newPassword);
   }
 
   Future<void> deleteAccount() async {
+  // delete the current user and their firestore profile
     User? user = FirebaseAuth.instance.currentUser;
     if (user != null) {
       await FirebaseFirestore.instance
@@ -318,6 +336,7 @@ class FirebaseService {
   }
 
   Future<void> updateEmail(String newEmail) async {
+  // update the user's email in auth and sync to firestore
     User? user = FirebaseAuth.instance.currentUser;
     if (user != null) {
       await user.verifyBeforeUpdateEmail(newEmail);
@@ -365,19 +384,19 @@ class FirebaseService {
     }
   }
 
-  // Create a new post. Returns the created document ID.
+  // create a new post and return the document id.
   Future<String> createPost(Post post) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
       throw Exception('Not authenticated');
     }
 
-    // Validate required fields
+    // validate required fields
     _validatePostCreate(post);
 
     final docRef = _postsCollection.doc();
 
-    // Fetch username for poster label (fallback to email if unavailable)
+    // fetch username for poster label (fallback to email if unavailable)
     String posterName = user.email ?? 'Unknown User';
     try {
       final userDoc =
@@ -410,7 +429,7 @@ class FirebaseService {
     return docRef.id;
   }
 
-  // Get a single post by ID
+  // get a single post by ID
   Future<Post?> getPost(String id) async {
     final snap = await _postsCollection.doc(id).get();
     if (!snap.exists) return null;
@@ -419,7 +438,8 @@ class FirebaseService {
     return _postFromMap({...data, 'id': snap.id});
   }
 
-  // Stream posts with optional ordering and date range filtering
+  // stream posts with optional ordering and date range filtering
+  // advanced query type
   // - Select with filter criteria (other than identifier)
   // - Select with multiple filter criteria (same field)
   // - Select with multiple filter criteria (different fields)
@@ -457,10 +477,6 @@ class FirebaseService {
     }
 
     // Select with sort order:
-    // If there is a date range inequality, Firestore requires orderBy on that field.
-    // If there is no range and no author filter, we can order on server.
-    // If filtering by author only, skip server-side order to avoid composite index,
-    // and we will sort on client instead.
     if (hasRange) {
       queryRef = queryRef.orderBy('date_posted', descending: descending);
       serverOrders = true;
@@ -472,10 +488,7 @@ class FirebaseService {
     }
 
     // Select with multiple filter criteria (different fields):
-    // The combination of where('authorId' == ...) and where on 'date_posted'
-    // above constitutes multi-field filtering. This may require a composite index
-    // in Firestore (authorId asc, date_posted asc/desc). If you see an index error,
-    // follow the link in the error to create the suggested index.
+    // where('authorId' == ...) and where on 'date_posted'
 
     return queryRef.snapshots().map((snapshot) {
       final list =
@@ -495,7 +508,7 @@ class FirebaseService {
   }
 
   // Update an existing post by ID
-  Future<void> updatePost(String id, Post post) async {
+  Future<void> updatePost(String id, Post post, {bool removeImage = false}) async {
     // Build update map and normalize types
     final data = <String, dynamic>{
       'title': (post.title is String) ? post.title : post.title?.toString(),
@@ -505,10 +518,22 @@ class FirebaseService {
               : post.description?.toString(),
       'poster': (post.poster is String) ? post.poster : post.poster?.toString(),
     };
-    // Remove nulls to avoid accidentally clearing fields;
+    // image updates/removal
+    if (removeImage) {
+      data['imageBase64'] = FieldValue.delete();
+    } else if (post.imageBase64 != null) {
+      if ((post.imageBase64!).isEmpty) {
+        // Treat empty string as delete as well
+        data['imageBase64'] = FieldValue.delete();
+      } else {
+        data['imageBase64'] = post.imageBase64;
+      }
+    }
+
+    // Remove nulls to avoid accidentally clearing unrelated fields
     data.removeWhere((key, value) => value == null);
 
-    // Validate update payload
+    // Validate update payload (ensures title/description are not blank when present)
     _validatePostUpdate(data);
 
     await _postsCollection.doc(id).update(data);
@@ -552,10 +577,9 @@ class FirebaseService {
     );
   }
 
-  // =========================
-  // Events CRUD
-  // =========================
+  // events CRUD
 
+  // helper to convert firestore map to the event model
   EventModel.Event _eventFromMap(Map<String, dynamic> map) {
     final startTs = map['startDateTime'];
     final endTs = map['endDateTime'];
@@ -590,6 +614,9 @@ class FirebaseService {
     if (_isBlank(event.location)) throw Exception('Location is required');
     if (event.startDateTime == null || event.endDateTime == null) {
       throw Exception('Start and end date/time are required');
+    }
+    if (!event.endDateTime!.isAfter(event.startDateTime!)) {
+      throw Exception('End time must be after the start time');
     }
 
     final docRef = _eventsCollection.doc();
@@ -632,7 +659,6 @@ class FirebaseService {
   }
 
   // Select with aggregation:
-  // Example helper using Firestore count() aggregation for posts.
   Future<int> countPosts({
     String? authorId,
     DateTime? startDate,
@@ -681,6 +707,13 @@ class FirebaseService {
   // Increment awards counter on an event (creates field if missing)
   Future<void> incrementEventAwards(String id) async {
     await _eventsCollection.doc(id).set({
+      'awards': FieldValue.increment(1),
+    }, SetOptions(merge: true));
+  }
+
+  // Increment awards counter on a user
+  Future<void> incrementUserAwards(String userId) async {
+    await FirebaseFirestore.instance.collection('users').doc(userId).set({
       'awards': FieldValue.increment(1),
     }, SetOptions(merge: true));
   }

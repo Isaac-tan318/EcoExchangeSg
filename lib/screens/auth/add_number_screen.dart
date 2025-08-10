@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_application_1/screens/home_page.dart';
 import 'package:flutter_application_1/services/firebase_service.dart';
-import 'package:flutter_application_1/widgets/textfield.dart';
+import 'package:flutter_application_1/widgets/textfield_widget.dart';
 import 'package:get_it/get_it.dart';
 
 class AddNumberScreen extends StatelessWidget {

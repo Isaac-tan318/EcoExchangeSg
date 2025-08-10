@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/services/firebase_service.dart';
-import 'package:flutter_application_1/widgets/textfield.dart';
+import 'package:flutter_application_1/widgets/textfield_widget.dart';
 import 'package:get_it/get_it.dart';
 
+// screen to update account information (just email at the moment)
 class EditInformationScreen extends StatefulWidget {
   static var routeName = "/edit_information";
 
@@ -13,21 +14,25 @@ class EditInformationScreen extends StatefulWidget {
 }
 
 class _EditInformationScreenState extends State<EditInformationScreen> {
+  // form state for validation
   GlobalKey<FormState> form = GlobalKey<FormState>();
 
   final _emailController = TextEditingController();
   var newEmail = '';
 
   FirebaseService firebaseService = GetIt.instance<FirebaseService>();
+
   bool isLoading = true;
   bool isSaving = false;
 
   @override
   void initState() {
     super.initState();
+    // Load current user's email
     _loadUserData();
   }
 
+  // loads the current user's email
   Future<void> _loadUserData() async {
     try {
       final user = firebaseService.getCurrentUser();
@@ -47,6 +52,7 @@ class _EditInformationScreenState extends State<EditInformationScreen> {
     }
   }
 
+  // sends to Firebase
   Future<void> saveChanges() async {
     if (form.currentState!.validate()) {
       setState(() {
@@ -73,6 +79,7 @@ class _EditInformationScreenState extends State<EditInformationScreen> {
 
   @override
   void dispose() {
+    // dispose controller to prevent leaks
     _emailController.dispose();
     super.dispose();
   }
@@ -90,6 +97,7 @@ class _EditInformationScreenState extends State<EditInformationScreen> {
       ),
       backgroundColor: scheme.surface,
       body:
+          // initial loading spinner while fetching user data
           isLoading
               ? const Center(child: CircularProgressIndicator())
               : SafeArea(
@@ -105,6 +113,7 @@ class _EditInformationScreenState extends State<EditInformationScreen> {
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
                               const SizedBox(height: 24),
+                              // email field
                               Text(
                                 'Email',
                                 style: TextStyle(
@@ -143,7 +152,7 @@ class _EditInformationScreenState extends State<EditInformationScreen> {
                               ),
                               const SizedBox(height: 32),
                               ElevatedButton(
-                                // save new email
+                                // submit changes
                                 onPressed: isSaving ? null : saveChanges,
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: scheme.primaryContainer,

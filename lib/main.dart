@@ -16,13 +16,13 @@ import 'package:flutter_application_1/screens/edit_post_screen.dart';
 import 'package:flutter_application_1/screens/home_page.dart';
 import 'package:flutter_application_1/screens/create_event_screen.dart';
 import 'package:flutter_application_1/screens/edit_event_screen.dart';
-import 'package:flutter_application_1/models/post.dart';
+import 'package:flutter_application_1/models/post_model.dart';
 import 'package:flutter_application_1/screens/post_details_screen.dart';
 import 'package:flutter_application_1/screens/event_details_screen.dart';
 import 'package:flutter_application_1/services/firebase_service.dart';
 import 'package:flutter_application_1/services/notification_service.dart';
 import 'package:flutter_application_1/services/connectivity_service.dart';
-import 'package:flutter_application_1/widgets/offline_banner.dart';
+import 'package:flutter_application_1/widgets/offline_banner_widget.dart';
 import 'package:get_it/get_it.dart';
 import 'package:flutter_application_1/services/theme_service.dart';
 import 'package:flutter_application_1/services/tts_service.dart';
@@ -31,45 +31,36 @@ import 'package:flutter_application_1/services/nets_service.dart';
 void main() async {
   final getIt = GetIt.instance;
   getIt.allowReassignment = true;
-  if (!getIt.isRegistered<NETSService>()) {
-    getIt.registerLazySingleton<NETSService>(() => NETSService());
-  }
+  getIt.registerLazySingleton<NETSService>(() => NETSService());
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  // Ensure web keeps users signed in across sessions; mobile persists by default
+  // keep web users signed in across sessions
   if (kIsWeb) {
     await FirebaseAuth.instance.setPersistence(Persistence.LOCAL);
   }
-  if (!getIt.isRegistered<FirebaseService>()) {
-    getIt.registerLazySingleton<FirebaseService>(() => FirebaseService());
-  }
-  if (!getIt.isRegistered<NotificationService>()) {
-    getIt.registerLazySingleton<NotificationService>(
-      () => NotificationService(),
-    );
-  }
-  if (!getIt.isRegistered<ConnectivityService>()) {
-    getIt.registerLazySingleton<ConnectivityService>(
-      () => ConnectivityService(),
-    );
-  }
-  if (!getIt.isRegistered<TtsService>()) {
-    getIt.registerLazySingleton<TtsService>(() => TtsService());
-  }
-  // Theme service for light/dark and seed color
-  if (!getIt.isRegistered<ThemeService>()) {
-    getIt.registerSingleton<ThemeService>(ThemeService());
-  }
+  getIt.registerLazySingleton<FirebaseService>(() => FirebaseService());
+
+  getIt.registerLazySingleton<ConnectivityService>(
+    () => ConnectivityService(),
+  );
+  getIt.registerLazySingleton<TtsService>(() => TtsService());
+  getIt.registerLazySingleton<NotificationService>(
+    () => NotificationService(),
+  );
+  // theme service for light/dark and seed color
+  getIt.registerSingleton<ThemeService>(ThemeService());
   await getIt<ThemeService>().load();
-  // Start mobile local notifications for new events (no-op on web)
-  await GetIt.instance<NotificationService>().startListeningForNewEvents();
+  final notif = GetIt.instance<NotificationService>();
+  // prompt for permission once per install
+  await notif.promptForPermissionsIfFirstLogin();
+  await notif.startListeningForNewEvents();
   runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  // This widget is the root of your application.
+  // root app widget
   @override
   Widget build(BuildContext context) {
     final themeService = GetIt.instance<ThemeService>();
@@ -83,7 +74,7 @@ class MyApp extends StatelessWidget {
           darkTheme: themeService.darkTheme(context),
           themeMode: themeService.mode,
           builder: (context, child) {
-            // Apply global text scale factor from ThemeService
+            // apply global text scale
             final base = MediaQuery.of(context);
             final themedScale = themeService.textScale;
             return MediaQuery(
@@ -91,12 +82,14 @@ class MyApp extends StatelessWidget {
               child: Stack(
                 children: [
                   if (child != null) child,
-                  const OfflineBannerOverlay(),
+                  // put offline banner on top of content
+                  const OfflineBannerOverlay(alignment: Alignment.center),
                 ],
               ),
             );
           },
           home: const AuthGate(),
+          // static routes
           routes: {
             LoginScreen.routeName: (_) => LoginScreen(),
             SignupScreen.routeName: (_) => SignupScreen(),
@@ -112,6 +105,7 @@ class MyApp extends StatelessWidget {
             PhoneNumberLoginScreen.routeName: (_) => PhoneNumberLoginScreen(),
             EditInformationScreen.routeName: (_) => EditInformationScreen(),
           },
+          // dynamic routes with arguments
           onGenerateRoute: (settings) {
             if (settings.name == EditPost.routeName) {
               final args = settings.arguments as Map<String, dynamic>;

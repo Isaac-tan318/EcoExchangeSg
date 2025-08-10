@@ -9,7 +9,7 @@ import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:latlong2/latlong.dart';
 
-import 'package:flutter_application_1/models/event.dart';
+import 'package:flutter_application_1/models/event_model.dart';
 import 'package:flutter_application_1/services/firebase_service.dart';
 import 'package:flutter_application_1/config/app_config.dart';
 import 'package:flutter_application_1/services/connectivity_service.dart';
@@ -112,6 +112,11 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
   }
 
   Future<void> _pickStart() async {
+    // dismiss keyboard and active suggestions before opening picker
+    FocusScope.of(context).unfocus();
+    if (mounted && _suggestions.isNotEmpty) {
+      setState(() => _suggestions = []);
+    }
     final pickedDate = await showDatePicker(
       context: context,
       initialDate: _start ?? DateTime.now(),
@@ -136,6 +141,11 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
   }
 
   Future<void> _pickEnd() async {
+    // dismiss keyboard and active suggestions before opening picker
+    FocusScope.of(context).unfocus();
+    if (mounted && _suggestions.isNotEmpty) {
+      setState(() => _suggestions = []);
+    }
     final pickedDate = await showDatePicker(
       context: context,
       initialDate: _end ?? (_start ?? DateTime.now()),
@@ -145,17 +155,29 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
     if (pickedDate == null) return;
     final pickedTime = await showTimePicker(
       context: context,
-      initialTime: TimeOfDay.now(),
+      // Nudge users towards a valid end time by defaulting to start time if set
+      initialTime: TimeOfDay.fromDateTime(_start ?? DateTime.now()),
     );
     if (pickedTime == null) return;
+    final proposedEnd = DateTime(
+      pickedDate.year,
+      pickedDate.month,
+      pickedDate.day,
+      pickedTime.hour,
+      pickedTime.minute,
+    );
     setState(() {
-      _end = DateTime(
-        pickedDate.year,
-        pickedDate.month,
-        pickedDate.day,
-        pickedTime.hour,
-        pickedTime.minute,
-      );
+      // Accept only if strictly after start
+      if (_start != null && !proposedEnd.isAfter(_start!)) {
+        _end = null;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('End time must be after the start time'),
+          ),
+        );
+      } else {
+        _end = proposedEnd;
+      }
     });
   }
 
@@ -435,6 +457,12 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
       );
       return;
     }
+    if (!_end!.isAfter(_start!)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('End time must be after the start time')),
+      );
+      return;
+    }
     setState(() => _submitting = true);
 
     // send to firebase
@@ -457,6 +485,55 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
       ).showSnackBar(SnackBar(content: Text(e.toString())));
     } finally {
       if (mounted) setState(() => _submitting = false);
+    }
+  }
+
+  // Let user choose Camera or Gallery for picking an image
+  Future<void> _pickEventImage() async {
+    if (!_online) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Offline: cannot pick images.')),
+      );
+      return;
+    }
+    final source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      builder:
+          (ctx) => SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.photo_camera),
+                  title: const Text('Camera'),
+                  onTap: () => Navigator.pop(ctx, ImageSource.camera),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.photo_library),
+                  title: const Text('Gallery'),
+                  onTap: () => Navigator.pop(ctx, ImageSource.gallery),
+                ),
+                const SizedBox(height: 8),
+              ],
+            ),
+          ),
+    );
+    if (source == null) return;
+    try {
+      final XFile? picked = await _picker.pickImage(
+        source: source,
+        imageQuality: 85,
+        maxWidth: 2000,
+        maxHeight: 2000,
+      );
+      if (picked == null) return;
+      final bytes = await picked.readAsBytes();
+      setState(() => _imageBase64 = base64Encode(bytes));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to pick image: $e')));
     }
   }
 
@@ -768,27 +845,22 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                   ),
                 ],
               ),
+              // make sure the start is before the end
+              if (_start != null && _end != null && !_end!.isAfter(_start!))
+                Padding(
+                  padding: const EdgeInsets.only(top: 8.0),
+                  child: Text(
+                    'End must be after start',
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                  ),
+                ),
               const SizedBox(height: 12),
               Align(
                 alignment: Alignment.center,
                 child: ElevatedButton.icon(
-                  onPressed: () async {
-                    try {
-                      final XFile? picked = await _picker.pickImage(
-                        source: ImageSource.gallery,
-                        imageQuality: 85,
-                        maxWidth: 2000,
-                        maxHeight: 2000,
-                      );
-                      if (picked == null) return;
-                      final bytes = await picked.readAsBytes();
-                      setState(() => _imageBase64 = base64Encode(bytes));
-                    } catch (e) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Failed to pick image: $e')),
-                      );
-                    }
-                  },
+                  onPressed: _pickEventImage,
                   icon: const Icon(Icons.add_photo_alternate),
 
                   // add or edit image
@@ -814,6 +886,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                         : const Icon(Icons.check),
                 label: const Text('Post'),
               ),
+              SizedBox(height: 30),
             ],
           ),
         ),

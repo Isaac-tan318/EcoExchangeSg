@@ -13,6 +13,7 @@ import 'package:flutter_application_1/models/event.dart';
 import 'package:flutter_application_1/services/firebase_service.dart';
 import 'package:flutter_application_1/config/app_config.dart';
 import 'package:flutter_application_1/services/connectivity_service.dart';
+import 'package:flutter_application_1/utils/date_formats.dart';
 
 class CreateEventScreen extends StatefulWidget {
   const CreateEventScreen({super.key});
@@ -56,15 +57,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
   static String _geoapifyKey = String.fromEnvironment('GEOAPIFY_KEY');
   bool _online = true;
 
-  String _fmt(DateTime dt) {
-    final l = dt.toLocal();
-    final dd = l.day.toString().padLeft(2, '0');
-    final mm = l.month.toString().padLeft(2, '0');
-    final yyyy = l.year.toString().padLeft(4, '0');
-    final hh = l.hour.toString().padLeft(2, '0');
-    final min = l.minute.toString().padLeft(2, '0');
-    return '$dd/$mm/$yyyy $hh:$min';
-  }
+  String _fmt(DateTime dt) => DateFormats.dMonthYHm(dt.toLocal());
 
   @override
   void initState() {

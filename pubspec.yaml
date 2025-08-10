@@ -51,6 +51,7 @@ dependencies:
   permission_handler: ^11.3.0
   flutter_tts: ^3.8.0
   table_calendar: ^3.1.2
+  intl: ^0.19.0
 
 dev_dependencies:
   flutter_test:
@@ -80,7 +81,13 @@ flutter:
   assets:
     - assets/images/google.png
     - assets/images/logo.png
+    - assets/images/greenTick.png
+    - assets/images/redCross.png
+    - assets/images/netsQrInfo.png
     - assets/config/app_config.json
+    - assets/images/greenTick.png
+    - assets/images/redCross.png
+    - assets/images/netsQrInfo.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

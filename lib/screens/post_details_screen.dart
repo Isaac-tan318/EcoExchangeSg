@@ -9,6 +9,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_application_1/services/connectivity_service.dart';
 import 'package:flutter_application_1/services/tts_service.dart';
 import 'dart:async';
+import 'package:flutter_application_1/widgets/nets_qr.dart';
 
 class PostDetailsScreen extends StatefulWidget {
   static const routeName = '/postDetails';
@@ -189,6 +190,54 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: FilledButton.icon(
+                    onPressed: () {
+                      showModalBottomSheet(
+                        context: context,
+                        showDragHandle: true,
+                        isScrollControlled: true,
+                        builder: (ctx) {
+                          return Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Send an award', style: Theme.of(ctx).textTheme.titleLarge),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Scan the NETS QR to tip the creator. Once paid, tap Award to confirm.',
+                                  style: Theme.of(ctx).textTheme.bodyMedium,
+                                ),
+                                const SizedBox(height: 12),
+                                NETSQR((BuildContext c) async {
+                                  try {
+                                    await GetIt.instance<FirebaseService>().incrementPostAwards(widget.postId);
+                                    if (mounted) Navigator.of(ctx).pop();
+                                    if (!mounted) return;
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(content: Text('Thanks for your award!')),
+                                    );
+                                  } catch (e) {
+                                    if (!mounted) return;
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(content: Text('Failed to record award: $e')),
+                                    );
+                                  }
+                                }),
+                              ],
+                            ),
+                          );
+                        },
+                      );
+                    },
+                    icon: const Icon(Icons.card_giftcard),
+                    label: const Text('Award'),
+                  ),
+                ),
+                const SizedBox(height: 8),
                 Text(
                   post.title?.toString() ?? '',
                   style: TextStyle(

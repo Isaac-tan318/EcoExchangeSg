@@ -3,6 +3,7 @@ import 'package:flutter_application_1/models/event.dart';
 import 'package:flutter_application_1/services/firebase_service.dart';
 import 'package:get_it/get_it.dart';
 import 'package:flutter_application_1/services/connectivity_service.dart';
+import 'package:flutter_application_1/utils/date_formats.dart';
 
 class EditEventScreen extends StatefulWidget {
   const EditEventScreen({super.key});
@@ -25,15 +26,7 @@ class _EditEventScreenState extends State<EditEventScreen> {
   bool _online = true;
   late Event _event;
 
-  String _fmt(DateTime dt) {
-    final l = dt.toLocal();
-    final dd = l.day.toString().padLeft(2, '0');
-    final mm = l.month.toString().padLeft(2, '0');
-    final yyyy = l.year.toString().padLeft(4, '0');
-    final hh = l.hour.toString().padLeft(2, '0');
-    final min = l.minute.toString().padLeft(2, '0');
-    return '$dd/$mm/$yyyy $hh:$min';
-  }
+  String _fmt(DateTime dt) => DateFormats.dMonthYHm(dt.toLocal());
 
   @override
   void didChangeDependencies() {

@@ -5,11 +5,13 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/models/event.dart';
 import 'package:flutter_application_1/screens/edit_event_screen.dart';
+import 'package:flutter_application_1/utils/date_formats.dart';
 import 'package:flutter_application_1/services/connectivity_service.dart';
 import 'package:flutter_application_1/services/firebase_service.dart';
 import 'package:flutter_application_1/services/tts_service.dart';
 import 'package:get_it/get_it.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter_application_1/widgets/nets_qr.dart';
 
 class EventDetailsScreen extends StatefulWidget {
   static const routeName = '/eventDetails';
@@ -52,14 +54,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
     super.dispose();
   }
 
-  String _fmtDateTime(DateTime dt) {
-    final d = dt.day.toString().padLeft(2, '0');
-    final m = dt.month.toString().padLeft(2, '0');
-    final y = dt.year.toString().padLeft(4, '0');
-    final hh = dt.hour.toString().padLeft(2, '0');
-    final mm = dt.minute.toString().padLeft(2, '0');
-    return '$d/$m/$y $hh:$mm';
-  }
+  String _fmtDateTime(DateTime dt) => DateFormats.dMonthYHm(dt);
 
   Future<void> _reportEvent(Event e) async {
     final subject = Uri.encodeComponent('[Report] Event ${e.title ?? ''}');
@@ -154,6 +149,54 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: FilledButton.icon(
+                    onPressed: () {
+                      showModalBottomSheet(
+                        context: context,
+                        showDragHandle: true,
+                        isScrollControlled: true,
+                        builder: (ctx) {
+                          return Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Send an award', style: Theme.of(ctx).textTheme.titleLarge),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Scan the NETS QR to tip the organiser. Once paid, tap Register to confirm.',
+                                  style: Theme.of(ctx).textTheme.bodyMedium,
+                                ),
+                                const SizedBox(height: 12),
+                                NETSQR((BuildContext c) async {
+                                  try {
+                                    await GetIt.instance<FirebaseService>().incrementEventAwards(widget.eventId);
+                                    if (mounted) Navigator.of(ctx).pop();
+                                    if (!mounted) return;
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(content: Text('Thanks for your award!')),
+                                    );
+                                  } catch (e) {
+                                    if (!mounted) return;
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(content: Text('Failed to record award: $e')),
+                                    );
+                                  }
+                                }),
+                              ],
+                            ),
+                          );
+                        },
+                      );
+                    },
+                    icon: const Icon(Icons.card_giftcard),
+                    label: const Text('Award'),
+                  ),
+                ),
+                const SizedBox(height: 8),
                 Text(
                   event.title?.toString() ?? '',
                   style: TextStyle(

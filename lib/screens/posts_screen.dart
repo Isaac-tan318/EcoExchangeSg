@@ -35,10 +35,24 @@ class _PostsScreenState extends State<PostsScreen> {
   }
 
   String _fmt(DateTime d) {
-    final day = d.day.toString().padLeft(2, '0');
-    final m = d.month.toString().padLeft(2, '0');
-    final y = d.year.toString().padLeft(4, '0');
-    return '$day/$m/$y';
+    const months = [
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
+    ];
+    final day = d.day; // no leading zero for readability
+    final monthName = months[d.month - 1];
+    final y = d.year;
+    return '$day $monthName $y';
   }
 
   String _timeLabel() {

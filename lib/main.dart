@@ -26,8 +26,10 @@ import 'package:flutter_application_1/widgets/offline_banner.dart';
 import 'package:get_it/get_it.dart';
 import 'package:flutter_application_1/services/theme_service.dart';
 import 'package:flutter_application_1/services/tts_service.dart';
+import 'package:flutter_application_1/services/nets_service.dart';
 
 void main() async {
+  GetIt.instance.registerLazySingleton(() => NETSService());
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   // Ensure web keeps users signed in across sessions; mobile persists by default
@@ -107,7 +109,9 @@ class MyApp extends StatelessWidget {
             if (settings.name == EventDetailsScreen.routeName) {
               final args = settings.arguments as Map<String, dynamic>;
               return MaterialPageRoute(
-                builder: (_) => EventDetailsScreen(eventId: args['eventId'] as String),
+                builder:
+                    (_) =>
+                        EventDetailsScreen(eventId: args['eventId'] as String),
               );
             }
             return null;

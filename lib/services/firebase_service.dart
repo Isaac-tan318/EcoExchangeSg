@@ -143,12 +143,13 @@ class FirebaseService {
         ),
       );
     }
-    return FirebaseFirestore.instance.collection('users').doc(uid).snapshots().map((
+  return FirebaseFirestore.instance.collection('users').doc(uid).snapshots().map((
       snapshot,
     ) {
       if (snapshot.exists) {
         final data = snapshot.data() as Map<String, dynamic>;
         return UserModel.User(
+      pfp: (data['pfp'] ?? ''),
           username: (data['username'] ?? 'Unknown User'),
           bio:
               (data['bio'] ??
@@ -158,6 +159,7 @@ class FirebaseService {
       } else {
         // Return default user if document doesn't exist
         return UserModel.User(
+      pfp: '',
           username: 'Unknown User',
           bio:
               "Environmental advocate passionate in promoting sustainable living and conservation",
@@ -323,6 +325,18 @@ class FirebaseService {
         {'email': newEmail},
       );
     }
+  }
+
+  // Update current user's profile fields (e.g., pfp, username, bio)
+  Future<void> updateCurrentUserProfile(Map<String, dynamic> data) async {
+    final user = getCurrentUser();
+    if (user == null) throw Exception('Not authenticated');
+    final payload = Map<String, dynamic>.from(data);
+    payload.removeWhere((k, v) => v == null);
+    await FirebaseFirestore.instance.collection('users').doc(user.uid).set(
+      payload,
+      SetOptions(merge: true),
+    );
   }
 
   // Posts CRUD
@@ -505,6 +519,16 @@ class FirebaseService {
     await postRef.delete();
   }
 
+  // Increment awards counter on a post (creates field if missing)
+  Future<void> incrementPostAwards(String id) async {
+    await _postsCollection.doc(id).set(
+      {
+        'awards': FieldValue.increment(1),
+      },
+      SetOptions(merge: true),
+    );
+  }
+
   // Helper to convert Firestore map to the Post model
   Post _postFromMap(Map<String, dynamic> map) {
     final ts = map['date_posted'];
@@ -651,5 +675,15 @@ class FirebaseService {
 
   Future<void> deleteEvent(String id) async {
     await _eventsCollection.doc(id).delete();
+  }
+
+  // Increment awards counter on an event (creates field if missing)
+  Future<void> incrementEventAwards(String id) async {
+    await _eventsCollection.doc(id).set(
+      {
+        'awards': FieldValue.increment(1),
+      },
+      SetOptions(merge: true),
+    );
   }
 }

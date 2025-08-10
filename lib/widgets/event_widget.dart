@@ -1,15 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/models/event.dart';
+import 'package:flutter_application_1/utils/date_formats.dart';
 import 'dart:convert';
 
-String _fmtDateTime(DateTime dt) {
-  final d = dt.day.toString().padLeft(2, '0');
-  final m = dt.month.toString().padLeft(2, '0');
-  final y = dt.year.toString().padLeft(4, '0');
-  final hh = dt.hour.toString().padLeft(2, '0');
-  final mm = dt.minute.toString().padLeft(2, '0');
-  return '$d/$m/$y $hh:$mm';
-}
+String _fmtDateTime(DateTime dt) => DateFormats.dMonthYHm(dt);
 
 class EventWidget extends StatelessWidget {
   final Event event;

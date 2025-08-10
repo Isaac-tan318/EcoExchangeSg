@@ -35,18 +35,22 @@ class _LoginScreenState extends State<LoginScreen> {
 
     if (isValid) {
       form.currentState!.save();
-      setState(() {
-        isLoading = true;
-      });
+      if (mounted) {
+        setState(() {
+          isLoading = true;
+        });
+      }
 
       try {
         await firebaseService.login(email, password, 'user');
         await GetIt.instance<NotificationService>()
             .promptForPermissionsIfFirstLogin();
+        if (!mounted) return;
+        // Show feedback before navigating away to avoid using a disposed context
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Login successful!")),
+        );
         Navigator.of(context).pushReplacementNamed(HomeScreen.routeName);
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text("Login successful!")));
       } catch (error) {
         String errorMessage = "Login failed, invalid email or password.";
         if (error.toString().contains(
@@ -54,13 +58,16 @@ class _LoginScreenState extends State<LoginScreen> {
         )) {
           errorMessage = "Make sure you login from the correct portal";
         }
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(errorMessage)));
+        if (mounted) {
+          ScaffoldMessenger.of(context)
+              .showSnackBar(SnackBar(content: Text(errorMessage)));
+        }
       } finally {
-        setState(() {
-          isLoading = false;
-        });
+        if (mounted) {
+          setState(() {
+            isLoading = false;
+          });
+        }
       }
     }
   }
@@ -194,44 +201,58 @@ class _LoginScreenState extends State<LoginScreen> {
                   isGoogleLoading
                       ? null
                       : () async {
-                        setState(() {
-                          isGoogleLoading = true;
-                        });
+                        if (mounted) {
+                          setState(() {
+                            isGoogleLoading = true;
+                          });
+                        }
                         try {
                           // Adds role if user is signing up with google
                           var result = await firebaseService.signInWithGoogle(
                             'user',
                           );
                           if (result.user != null) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text("Google login successful!"),
-                              ),
-                            );
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text("Google login successful!"),
+                                ),
+                              );
+                            }
                             await GetIt.instance<NotificationService>()
                                 .promptForPermissionsIfFirstLogin();
-                            nav.pushReplacementNamed(HomeScreen.routeName);
+                            if (mounted) {
+                              nav.pushReplacementNamed(
+                                HomeScreen.routeName,
+                              );
+                            }
                           } else {
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    "Google login failed: No user returned.",
+                                  ),
+                                ),
+                              );
+                            }
+                          }
+                        } catch (error) {
+                          if (mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Text(
-                                  "Google login failed: No user returned.",
+                                  "Google login failed: ${error.toString()}",
                                 ),
                               ),
                             );
                           }
-                        } catch (error) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                "Google login failed: ${error.toString()}",
-                              ),
-                            ),
-                          );
                         } finally {
-                          setState(() {
-                            isGoogleLoading = false;
-                          });
+                          if (mounted) {
+                            setState(() {
+                              isGoogleLoading = false;
+                            });
+                          }
                         }
                       },
               style: ElevatedButton.styleFrom(

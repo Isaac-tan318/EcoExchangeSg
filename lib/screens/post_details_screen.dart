@@ -7,6 +7,8 @@ import 'dart:convert';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_application_1/services/connectivity_service.dart';
+import 'package:flutter_application_1/services/tts_service.dart';
+import 'dart:async';
 
 class PostDetailsScreen extends StatefulWidget {
   static const routeName = '/postDetails';
@@ -21,14 +23,33 @@ class PostDetailsScreen extends StatefulWidget {
 class _PostDetailsScreenState extends State<PostDetailsScreen> {
   bool _deleting = false;
   bool _online = true;
+  TtsService? _tts;
+  StreamSubscription<bool>? _connSub;
 
   @override
   void initState() {
     super.initState();
-    GetIt.instance<ConnectivityService>().isOnline$.listen((isOnline) {
+    // Subscribe to connectivity changes and reflect the online/offline state
+    // in this screen. We check `mounted` before setState to avoid calling it
+    // after the widget has been disposed (e.g., after navigating away).
+    _connSub = GetIt.instance<ConnectivityService>().isOnline$.listen((
+      isOnline,
+    ) {
       if (!mounted) return;
       setState(() => _online = isOnline);
     });
+
+    // Acquire the shared Text-to-Speech service instance for reading content aloud.
+    _tts = GetIt.instance<TtsService>();
+  }
+
+  @override
+  void dispose() {
+    // Stop any ongoing speech and cancel the connectivity subscription
+    // to prevent memory leaks when this page is disposed.
+    _tts?.stop();
+    _connSub?.cancel();
+    super.dispose();
   }
 
   Future<void> _reportPost(Post post) async {
@@ -107,6 +128,19 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
                 icon: const Icon(Icons.flag_outlined),
                 onPressed: () => _reportPost(snapshot.data!),
               ),
+            if (snapshot.connectionState == ConnectionState.done &&
+                snapshot.data != null)
+              IconButton(
+                tooltip: 'Listen',
+                icon: const Icon(Icons.volume_up_outlined),
+                onPressed: () {
+                  final p = snapshot.data!;
+                  final title = (p.title?.toString().trim() ?? '');
+                  final desc = (p.description?.toString().trim() ?? '');
+                  final text = 'title: $title, description: $desc';
+                  _tts?.speak(text);
+                },
+              ),
           ],
         );
 
@@ -173,10 +207,10 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
                     const Spacer(),
                     if (post.authorId == service.getCurrentUser()?.uid) ...[
                       TextButton.icon(
-            onPressed:
-              _deleting || !_online
-                ? null
-                : () async {
+                        onPressed:
+                            _deleting || !_online
+                                ? null
+                                : () async {
                                   final navigator = Navigator.of(context);
                                   final updated = await navigator.pushNamed(
                                     EditPost.routeName,
@@ -208,55 +242,66 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
                         )
                       else
                         TextButton.icon(
-                          onPressed: !_online
-                              ? null
-                              : () async {
-                            final navigator = Navigator.of(context);
-                            final messenger = ScaffoldMessenger.maybeOf(
-                              context,
-                            );
-                            final confirm = await showDialog<bool>(
-                              context: context,
-                              builder:
-                                  (ctx) => AlertDialog(
-                                    title: const Text('Delete Post'),
-                                    content: const Text(
-                                      'Are you sure you want to delete this post?',
-                                    ),
-                                    actions: [
-                                      TextButton(
-                                        onPressed:
-                                            () => Navigator.of(ctx).pop(false),
-                                        child: const Text('Cancel'),
-                                      ),
-                                      TextButton(
-                                        onPressed:
-                                            () => Navigator.of(ctx).pop(true),
-                                        style: TextButton.styleFrom(
-                                          foregroundColor:
-                                              Theme.of(ctx).colorScheme.onError,
-                                          backgroundColor:
-                                              Theme.of(ctx).colorScheme.error,
+                          onPressed:
+                              !_online
+                                  ? null
+                                  : () async {
+                                    final navigator = Navigator.of(context);
+                                    final messenger = ScaffoldMessenger.maybeOf(
+                                      context,
+                                    );
+                                    final confirm = await showDialog<bool>(
+                                      context: context,
+                                      builder:
+                                          (ctx) => AlertDialog(
+                                            title: const Text('Delete Post'),
+                                            content: const Text(
+                                              'Are you sure you want to delete this post?',
+                                            ),
+                                            actions: [
+                                              TextButton(
+                                                onPressed:
+                                                    () => Navigator.of(
+                                                      ctx,
+                                                    ).pop(false),
+                                                child: const Text('Cancel'),
+                                              ),
+                                              TextButton(
+                                                onPressed:
+                                                    () => Navigator.of(
+                                                      ctx,
+                                                    ).pop(true),
+                                                style: TextButton.styleFrom(
+                                                  foregroundColor:
+                                                      Theme.of(
+                                                        ctx,
+                                                      ).colorScheme.onError,
+                                                  backgroundColor:
+                                                      Theme.of(
+                                                        ctx,
+                                                      ).colorScheme.error,
+                                                ),
+                                                child: const Text('Delete'),
+                                              ),
+                                            ],
+                                          ),
+                                    );
+                                    if (confirm != true) return;
+                                    setState(() => _deleting = true);
+                                    try {
+                                      await service.deletePost(widget.postId);
+                                      // Return to the previous screen instead of the very first (Login)
+                                      navigator.pop(true);
+                                    } catch (e) {
+                                      if (!mounted) return;
+                                      setState(() => _deleting = false);
+                                      messenger?.showSnackBar(
+                                        SnackBar(
+                                          content: Text('Failed to delete: $e'),
                                         ),
-                                        child: const Text('Delete'),
-                                      ),
-                                    ],
-                                  ),
-                            );
-                            if (confirm != true) return;
-                            setState(() => _deleting = true);
-                            try {
-                              await service.deletePost(widget.postId);
-                              // Return to the previous screen instead of the very first (Login)
-                              navigator.pop(true);
-                            } catch (e) {
-                              if (!mounted) return;
-                              setState(() => _deleting = false);
-                              messenger?.showSnackBar(
-                                SnackBar(content: Text('Failed to delete: $e')),
-                              );
-                            }
-                          },
+                                      );
+                                    }
+                                  },
                           icon: Icon(Icons.delete, color: scheme.error),
                           label: Text(
                             'Delete',

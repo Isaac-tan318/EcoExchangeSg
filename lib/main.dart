@@ -24,6 +24,7 @@ import 'package:flutter_application_1/services/connectivity_service.dart';
 import 'package:flutter_application_1/widgets/offline_banner.dart';
 import 'package:get_it/get_it.dart';
 import 'package:flutter_application_1/services/theme_service.dart';
+import 'package:flutter_application_1/services/tts_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -35,6 +36,7 @@ void main() async {
   GetIt.instance.registerLazySingleton(() => FirebaseService());
   GetIt.instance.registerLazySingleton(() => NotificationService());
   GetIt.instance.registerLazySingleton(() => ConnectivityService());
+  GetIt.instance.registerLazySingleton(() => TtsService());
   // Theme service for light/dark and seed color
   GetIt.instance.registerSingleton<ThemeService>(ThemeService());
   await GetIt.instance<ThemeService>().load();
@@ -103,7 +105,7 @@ class MyApp extends StatelessWidget {
   }
 }
 
-/// AuthGate decides the initial screen based on authentication state.
+/// authgate decides the first screen based on authentication state
 class AuthGate extends StatelessWidget {
   const AuthGate({super.key});
 
@@ -113,7 +115,6 @@ class AuthGate extends StatelessWidget {
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          // Lightweight splash while checking auth
           return const Scaffold(
             body: Center(child: CircularProgressIndicator()),
           );

@@ -140,8 +140,10 @@ class _PostsScreenState extends State<PostsScreen> {
                 ],
               ),
 
+              // filter by date
+
               DropdownMenu<String>(
-                width: 130,
+                width: 140,
                 menuStyle: MenuStyle(
                   backgroundColor: WidgetStatePropertyAll(
                     scheme.tertiaryContainer,
@@ -341,8 +343,6 @@ class Slide extends StatelessWidget {
     var nav = Navigator.of(context);
 
     return Slidable(
-      key: const ValueKey(0),
-
       startActionPane: ActionPane(
         motion: const ScrollMotion(),
 

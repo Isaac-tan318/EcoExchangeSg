@@ -19,7 +19,6 @@ class ThemeService extends ChangeNotifier {
         modeIndex >= 0 &&
         modeIndex < ThemeMode.values.length) {
       var loaded = ThemeMode.values[modeIndex];
-      // Migrate any previously saved System preference to Light
       if (loaded == ThemeMode.system) {
         loaded = ThemeMode.light;
         await prefs.setInt(_keyMode, loaded.index);

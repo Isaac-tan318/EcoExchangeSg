@@ -14,7 +14,7 @@ class Field extends StatelessWidget {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(10),
         color: color,
-        border: Border.all(color: Colors.black),
+        border: Border.all(color: Theme.of(context).colorScheme.outline),
       ),
       alignment: Alignment.center,
       child: child,

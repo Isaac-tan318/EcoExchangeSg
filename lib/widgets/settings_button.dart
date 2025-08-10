@@ -36,7 +36,10 @@ class SettingsButton extends StatelessWidget {
             padding: const EdgeInsets.only(left: 8.0, right: 16.0),
             child: Icon(icon),
           ),
-          Text(label, style: textTheme.titleLarge),
+          Text(
+            label,
+            style: textTheme.titleLarge?.copyWith(color: scheme.onSurface),
+          ),
         ],
       ),
     );

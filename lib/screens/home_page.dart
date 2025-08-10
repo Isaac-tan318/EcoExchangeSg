@@ -69,34 +69,61 @@ class _HomeScreenState extends State<HomeScreen> {
       null,
     ];
 
+    final media = MediaQuery.of(context);
+    final useRail = media.orientation == Orientation.landscape || media.size.width >= 600;
+
+    if (useRail) {
+      return Scaffold(
+        appBar: appBars[selectedIndex],
+        body: Row(
+          children: [
+            NavigationRail(
+              backgroundColor: Theme.of(context).colorScheme.surfaceDim,
+              selectedIndex: selectedIndex,
+              onDestinationSelected: (index) {
+                setState(() => selectedIndex = index);
+              },
+              labelType: NavigationRailLabelType.all,
+              selectedIconTheme: IconThemeData(color: scheme.primary),
+              selectedLabelTextStyle: TextStyle(color: scheme.primary),
+              destinations: const [
+                NavigationRailDestination(
+                  icon: Icon(Icons.home_outlined),
+                  selectedIcon: Icon(Icons.home),
+                  label: Text('Home'),
+                ),
+                NavigationRailDestination(
+                  icon: Icon(Icons.calendar_month_outlined),
+                  selectedIcon: Icon(Icons.calendar_month),
+                  label: Text('Events'),
+                ),
+                NavigationRailDestination(
+                  icon: Icon(Icons.person_outline),
+                  selectedIcon: Icon(Icons.person),
+                  label: Text('Profile'),
+                ),
+              ],
+            ),
+            const VerticalDivider(width: 1),
+            Expanded(child: screens[selectedIndex]),
+          ],
+        ),
+      );
+    }
+
     return Scaffold(
       appBar: appBars[selectedIndex],
       body: screens[selectedIndex],
-
       bottomNavigationBar: BottomNavigationBar(
         backgroundColor: Theme.of(context).colorScheme.surfaceDim,
         currentIndex: selectedIndex,
-
-        onTap: (index) {
-          setState(() {
-            selectedIndex = index;
-          });
-        },
-
+        onTap: (index) => setState(() => selectedIndex = index),
         type: BottomNavigationBarType.fixed,
-
         selectedItemColor: Theme.of(context).colorScheme.primary,
-
         unselectedItemColor: Theme.of(context).colorScheme.onSurfaceVariant,
-
-        items: [
+        items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-
-          BottomNavigationBarItem(
-            icon: Icon(Icons.calendar_month),
-            label: 'Events',
-          ),
-
+          BottomNavigationBarItem(icon: Icon(Icons.calendar_month), label: 'Events'),
           BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
         ],
       ),

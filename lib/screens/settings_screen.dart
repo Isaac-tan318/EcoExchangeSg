@@ -21,6 +21,7 @@ class SettingsScreen extends StatelessWidget {
         title: const Text('Settings'),
         leading: BackButton(),
         backgroundColor: scheme.surface,
+        foregroundColor: scheme.onSurface,
         elevation: 0,
       ),
       backgroundColor: scheme.surface,
@@ -52,53 +53,113 @@ class SettingsScreen extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Appearance', style: textTheme.titleMedium),
+                        Text(
+                          'Appearance',
+                          style: textTheme.titleMedium?.copyWith(
+                            color: scheme.onSurface,
+                          ),
+                        ),
                         const SizedBox(height: 8),
                         Row(
                           children: [
                             Flexible(
                               child: RadioListTile<ThemeMode>(
                                 contentPadding: EdgeInsets.zero,
-                                title: const Text('Light'),
+                                title: Text(
+                                  'Light',
+                                  style: textTheme.bodyLarge?.copyWith(
+                                    color: scheme.onSurface,
+                                  ),
+                                ),
                                 value: ThemeMode.light,
                                 groupValue: themeSvc.mode,
-                                onChanged: (v) {
-                                  if (v != null) themeSvc.setThemeMode(v);
+                                onChanged: (value) {
+                                  if (value != null) themeSvc.setThemeMode(value);
                                 },
                               ),
                             ),
                             Flexible(
                               child: RadioListTile<ThemeMode>(
                                 contentPadding: EdgeInsets.zero,
-                                title: const Text('Dark'),
+                                title: Text(
+                                  'Dark',
+                                  style: textTheme.bodyLarge?.copyWith(
+                                    color: scheme.onSurface,
+                                  ),
+                                ),
                                 value: ThemeMode.dark,
                                 groupValue: themeSvc.mode,
-                                onChanged: (v) {
-                                  if (v != null) themeSvc.setThemeMode(v);
+                                onChanged: (value) {
+                                  if (value != null) themeSvc.setThemeMode(value);
                                 },
                               ),
                             ),
                           ],
                         ),
                         const SizedBox(height: 8),
-                        Text('Accent color', style: textTheme.titleSmall),
+                        Text(
+                          'Text size',
+                          style: textTheme.titleSmall?.copyWith(
+                            color: scheme.onSurfaceVariant,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Column(
+                          children: [
+                            RadioListTile<double>(
+                              contentPadding: EdgeInsets.zero,
+                              title: Text('Small', style: textTheme.bodyLarge),
+                              value: 0.9,
+                              groupValue: themeSvc.textScale,
+                              onChanged: (v) => themeSvc.setTextScale(v ?? 1.0),
+                            ),
+                            RadioListTile<double>(
+                              contentPadding: EdgeInsets.zero,
+                              title: Text('Default', style: textTheme.bodyLarge),
+                              value: 1.0,
+                              groupValue: themeSvc.textScale,
+                              onChanged: (v) => themeSvc.setTextScale(v ?? 1.0),
+                            ),
+                            RadioListTile<double>(
+                              contentPadding: EdgeInsets.zero,
+                              title: Text('Large', style: textTheme.bodyLarge),
+                              value: 1.15,
+                              groupValue: themeSvc.textScale,
+                              onChanged: (v) => themeSvc.setTextScale(v ?? 1.0),
+                            ),
+                            RadioListTile<double>(
+                              contentPadding: EdgeInsets.zero,
+                              title: Text('Extra large', style: textTheme.bodyLarge),
+                              value: 1.3,
+                              groupValue: themeSvc.textScale,
+                              onChanged: (v) => themeSvc.setTextScale(v ?? 1.0),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Accent color',
+                          style: textTheme.titleSmall?.copyWith(
+                            color: scheme.onSurfaceVariant,
+                          ),
+                        ),
                         const SizedBox(height: 8),
                         Wrap(
                           spacing: 8,
                           runSpacing: 8,
                           children: [
-                            for (final c in seedChoices)
+              for (final seedColor in seedChoices)
                               GestureDetector(
-                                onTap: () => themeSvc.setSeedColor(c),
+                onTap: () => themeSvc.setSeedColor(seedColor),
                                 child: Container(
                                   width: 36,
                                   height: 36,
                                   decoration: BoxDecoration(
-                                    color: c,
+                  color: seedColor,
                                     shape: BoxShape.circle,
                                     border: Border.all(
                                       color:
-                                          themeSvc.seedColor.value == c.value
+                      themeSvc.seedColor.value == seedColor.value
                                               ? scheme.onSurface
                                               : Colors.transparent,
                                       width: 2,
@@ -146,91 +207,93 @@ class SettingsScreen extends StatelessWidget {
                 showDialog(
                   context: context,
                   builder: (context) {
-                    String newPassword = '';
-                    String confirmPassword = '';
                     bool obscure = true;
+                    final formKey = GlobalKey<FormState>();
+                    final newPassController = TextEditingController();
+                    final confirmPassController = TextEditingController();
                     // StatefulBuilder used to make local state inside the dialog
                     return StatefulBuilder(
                       builder:
                           (context, setState) => AlertDialog(
                             title: const Text('Change Password'),
-                            content: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                TextField(
-                                  onChanged: (value) {
-                                    newPassword = value;
-                                  },
-                                  decoration: InputDecoration(
-                                    labelText: 'New Password',
-                                    suffixIcon: IconButton(
-                                      icon: Icon(
-                                        obscure
-                                            ? Icons.visibility_off
-                                            : Icons.visibility,
+                            content: Form(
+                              key: formKey,
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  TextFormField(
+                                    controller: newPassController,
+                                    keyboardType: TextInputType.visiblePassword,
+                                    textInputAction: TextInputAction.next,
+                                    decoration: InputDecoration(
+                                      labelText: 'New Password',
+                                      suffixIcon: IconButton(
+                                        icon: Icon(
+                                          obscure
+                                              ? Icons.visibility_off
+                                              : Icons.visibility,
+                                        ),
+                                        onPressed: () {
+                                          setState(() {
+                                            obscure = !obscure;
+                                          });
+                                        },
                                       ),
-                                      onPressed: () {
-                                        setState(() {
-                                          obscure = !obscure;
-                                        });
-                                      },
                                     ),
+                                    obscureText: obscure,
+                                    validator: (value) {
+                                      if (value == null || value.isEmpty) {
+                                        return 'Password is required';
+                                      }
+                                      if (value.length < 8) {
+                                        return 'Password must be at least 8 characters';
+                                      }
+                                      return null;
+                                    },
                                   ),
-                                  obscureText: obscure,
-                                ),
-                                SizedBox(height: 12),
-                                TextField(
-                                  onChanged: (value) {
-                                    confirmPassword = value;
-                                  },
-                                  decoration: InputDecoration(
-                                    labelText: 'Confirm New Password',
-                                    suffixIcon: IconButton(
-                                      icon: Icon(
-                                        obscure
-                                            ? Icons.visibility_off
-                                            : Icons.visibility,
+                                  SizedBox(height: 12),
+                                  TextFormField(
+                                    controller: confirmPassController,
+                                    keyboardType: TextInputType.visiblePassword,
+                                    textInputAction: TextInputAction.done,
+                                    decoration: InputDecoration(
+                                      labelText: 'Confirm New Password',
+                                      suffixIcon: IconButton(
+                                        icon: Icon(
+                                          obscure
+                                              ? Icons.visibility_off
+                                              : Icons.visibility,
+                                        ),
+                                        onPressed: () {
+                                          setState(() {
+                                            obscure = !obscure;
+                                          });
+                                        },
                                       ),
-                                      onPressed: () {
-                                        setState(() {
-                                          obscure = !obscure;
-                                        });
-                                      },
                                     ),
+                                    obscureText: obscure,
+                                    validator: (value) {
+                                      if (value == null || value.isEmpty) {
+                                        return 'Please confirm your password';
+                                      }
+                                      if (value != newPassController.text) {
+                                        return 'Passwords do not match';
+                                      }
+                                      return null;
+                                    },
                                   ),
-                                  obscureText: obscure,
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
                             actions: [
                               TextButton(
                                 onPressed: () async {
-                                  if (newPassword.isEmpty ||
-                                      confirmPassword.isEmpty) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text(
-                                          'Please fill in both fields.',
-                                        ),
-                                      ),
-                                    );
-                                    return;
-                                  }
-                                  if (newPassword != confirmPassword) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text(
-                                          'Passwords do not match.',
-                                        ),
-                                      ),
-                                    );
-                                    return;
-                                  }
+                                  if (!formKey.currentState!.validate()) return;
 
                                   // call to firebase to change password
                                   try {
                                     await firebaseService.changePassword(
-                                      newPassword,
+                                      newPassController.text,
                                     );
                                     Navigator.of(context).pop();
                                   } on Exception catch (e) {

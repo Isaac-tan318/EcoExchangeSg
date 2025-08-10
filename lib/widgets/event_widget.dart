@@ -37,6 +37,7 @@ class EventWidget extends StatelessWidget {
                   style: TextStyle(
                     fontSize: texttheme.headlineMedium!.fontSize,
                     fontWeight: FontWeight.w100,
+                    color: scheme.onSurface,
                   ),
                 ),
               ),
@@ -90,7 +91,10 @@ class EventWidget extends StatelessWidget {
           if ((event.description ?? '').trim().isNotEmpty)
             Text(
               event.description!,
-              style: TextStyle(fontSize: texttheme.bodyLarge!.fontSize),
+              style: TextStyle(
+                fontSize: texttheme.bodyLarge!.fontSize,
+                color: scheme.onSurface,
+              ),
               maxLines: 3,
               overflow: TextOverflow.ellipsis,
             ),

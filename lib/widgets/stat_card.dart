@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
 class StatCard extends StatelessWidget {
-  var label;
-  var value;
+  final String label;
+  final String value;
 
-  StatCard(this.label, this.value);
+  const StatCard(this.label, this.value, {super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -19,9 +19,15 @@ class StatCard extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(label, style: TextStyle(fontSize: 14)),
+          Text(
+            label,
+            style: TextStyle(fontSize: 14, color: scheme.onTertiaryContainer),
+          ),
           SizedBox(height: 4),
-          Text(value, style: TextStyle(fontSize: 20)),
+          Text(
+            value,
+            style: TextStyle(fontSize: 20, color: scheme.onTertiaryContainer),
+          ),
         ],
       ),
     );

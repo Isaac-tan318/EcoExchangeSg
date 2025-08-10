@@ -33,7 +33,9 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
   @override
   void initState() {
     super.initState();
-    _connSub = GetIt.instance<ConnectivityService>().isOnline$.listen((isOnline) {
+    _connSub = GetIt.instance<ConnectivityService>().isOnline$.listen((
+      isOnline,
+    ) {
       if (!mounted) return;
       setState(() => _online = isOnline);
     });
@@ -42,7 +44,8 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
   }
 
   Future<void> _initRole() async {
-    final isOrg = await GetIt.instance<FirebaseService>().isCurrentUserOrganiser();
+    final isOrg =
+        await GetIt.instance<FirebaseService>().isCurrentUserOrganiser();
     if (!mounted) return;
     setState(() => _isOrganiser = isOrg);
   }
@@ -67,10 +70,17 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
     const toEmail = 'ecohubsg1@gmail.com';
 
     if (kIsWeb) {
-      final gmailUrl = Uri.parse('https://mail.google.com/mail/?view=cm&fs=1&to=$toEmail&su=$subject&body=$body');
-      final ok = await launchUrl(gmailUrl, mode: LaunchMode.externalApplication);
+      final gmailUrl = Uri.parse(
+        'https://mail.google.com/mail/?view=cm&fs=1&to=$toEmail&su=$subject&body=$body',
+      );
+      final ok = await launchUrl(
+        gmailUrl,
+        mode: LaunchMode.externalApplication,
+      );
       if (!ok && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not open Gmail.')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Could not open Gmail.')));
       }
       return;
     }
@@ -79,17 +89,19 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
       Uri.parse('gmail://co?to=$toEmail&subject=$subject&body=$body'),
       Uri.parse('googlegmail://co?to=$toEmail&subject=$subject&body=$body'),
     ];
-    for (final u in gmailUris) {
-      final canOpen = await canLaunchUrl(u);
+    for (final gmailUri in gmailUris) {
+      final canOpen = await canLaunchUrl(gmailUri);
       if (canOpen) {
-        final ok = await launchUrl(u, mode: LaunchMode.externalApplication);
+        final ok = await launchUrl(gmailUri, mode: LaunchMode.externalApplication);
         if (ok) return;
       }
     }
     final mailtoUri = Uri.parse('mailto:$toEmail?subject=$subject&body=$body');
     final ok = await launchUrl(mailtoUri, mode: LaunchMode.externalApplication);
     if (!ok && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('No email app available.')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('No email app available.')));
     }
   }
 
@@ -107,20 +119,22 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
           foregroundColor: scheme.onPrimary,
           title: const Text('Event Details'),
           actions: [
-            if (snapshot.connectionState == ConnectionState.done && snapshot.data != null)
+            if (snapshot.connectionState == ConnectionState.done &&
+                snapshot.data != null)
               IconButton(
                 tooltip: 'Report',
                 icon: const Icon(Icons.flag_outlined),
                 onPressed: () => _reportEvent(snapshot.data!),
               ),
-            if (snapshot.connectionState == ConnectionState.done && snapshot.data != null)
+            if (snapshot.connectionState == ConnectionState.done &&
+                snapshot.data != null)
               IconButton(
                 tooltip: 'Listen',
                 icon: const Icon(Icons.volume_up_outlined),
                 onPressed: () {
-                  final e = snapshot.data!;
-                  final title = (e.title?.toString().trim() ?? '');
-                  final desc = (e.description?.toString().trim() ?? '');
+                  final eventData = snapshot.data!;
+                  final title = (eventData.title?.toString().trim() ?? '');
+                  final desc = (eventData.description?.toString().trim() ?? '');
                   final text = 'title: $title, description: $desc';
                   _tts?.speak(text);
                 },
@@ -129,14 +143,23 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
         );
 
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return Scaffold(appBar: appBar, body: const Center(child: CircularProgressIndicator()));
+          return Scaffold(
+            appBar: appBar,
+            body: const Center(child: CircularProgressIndicator()),
+          );
         }
         if (snapshot.hasError) {
-          return Scaffold(appBar: appBar, body: Center(child: Text('Failed to load: ${snapshot.error}')));
+          return Scaffold(
+            appBar: appBar,
+            body: Center(child: Text('Failed to load: ${snapshot.error}')),
+          );
         }
         final event = snapshot.data;
         if (event == null) {
-          return Scaffold(appBar: appBar, body: const Center(child: Text('Event not found')));
+          return Scaffold(
+            appBar: appBar,
+            body: const Center(child: Text('Event not found')),
+          );
         }
 
         final currentUid = svc.getCurrentUser()?.uid;
@@ -164,7 +187,10 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                               mainAxisSize: MainAxisSize.min,
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text('Send an award', style: Theme.of(ctx).textTheme.titleLarge),
+                                Text(
+                                  'Send an award',
+                                  style: Theme.of(ctx).textTheme.titleLarge,
+                                ),
                                 const SizedBox(height: 8),
                                 Text(
                                   'Scan the NETS QR to tip the organiser. Once paid, tap Register to confirm.',
@@ -173,16 +199,23 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                                 const SizedBox(height: 12),
                                 NETSQR((BuildContext c) async {
                                   try {
-                                    await GetIt.instance<FirebaseService>().incrementEventAwards(widget.eventId);
+                                    await GetIt.instance<FirebaseService>()
+                                        .incrementEventAwards(widget.eventId);
                                     if (mounted) Navigator.of(ctx).pop();
                                     if (!mounted) return;
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(content: Text('Thanks for your award!')),
+                                      const SnackBar(
+                                        content: Text('Thanks for your award!'),
+                                      ),
                                     );
                                   } catch (e) {
                                     if (!mounted) return;
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(content: Text('Failed to record award: $e')),
+                                      SnackBar(
+                                        content: Text(
+                                          'Failed to record award: $e',
+                                        ),
+                                      ),
                                     );
                                   }
                                 }),
@@ -210,20 +243,24 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
                       TextButton.icon(
-                        onPressed: _deleting || !_online
-                            ? null
-                            : () async {
-                                final navigator = Navigator.of(context);
-                                await navigator.push(
-                                  MaterialPageRoute(
-                                    builder: (_) => const EditEventScreen(),
-                                    settings: RouteSettings(arguments: event),
-                                  ),
-                                );
-                                if (mounted) setState(() {});
-                              },
+                        onPressed:
+                            _deleting || !_online
+                                ? null
+                                : () async {
+                                  final navigator = Navigator.of(context);
+                                  await navigator.push(
+                                    MaterialPageRoute(
+                                      builder: (_) => const EditEventScreen(),
+                                      settings: RouteSettings(arguments: event),
+                                    ),
+                                  );
+                                  if (mounted) setState(() {});
+                                },
                         icon: Icon(Icons.edit, color: scheme.primary),
-                        label: Text('Edit', style: TextStyle(color: scheme.primary)),
+                        label: Text(
+                          'Edit',
+                          style: TextStyle(color: scheme.primary),
+                        ),
                       ),
                       const SizedBox(width: 8),
                       if (_deleting)
@@ -232,54 +269,87 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                           height: 20,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(scheme.error),
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              scheme.error,
+                            ),
                           ),
                         )
                       else
                         TextButton.icon(
-                          onPressed: !_online
-                              ? null
-                              : () async {
-                                  final navigator = Navigator.of(context);
-                                  final messenger = ScaffoldMessenger.maybeOf(context);
-                                  final confirm = await showDialog<bool>(
-                                    context: context,
-                                    builder: (ctx) => AlertDialog(
-                                      title: const Text('Delete Event'),
-                                      content: const Text('Are you sure you want to delete this event?'),
-                                      actions: [
-                                        TextButton(onPressed: () => Navigator.of(ctx).pop(false), child: const Text('Cancel')),
-                                        TextButton(
-                                          onPressed: () => Navigator.of(ctx).pop(true),
-                                          style: TextButton.styleFrom(
-                                            foregroundColor: Theme.of(ctx).colorScheme.onError,
-                                            backgroundColor: Theme.of(ctx).colorScheme.error,
+                          onPressed:
+                              !_online
+                                  ? null
+                                  : () async {
+                                    final navigator = Navigator.of(context);
+                                    final messenger = ScaffoldMessenger.maybeOf(
+                                      context,
+                                    );
+                                    final confirm = await showDialog<bool>(
+                                      context: context,
+                                      builder:
+                                          (ctx) => AlertDialog(
+                                            title: const Text('Delete Event'),
+                                            content: const Text(
+                                              'Are you sure you want to delete this event?',
+                                            ),
+                                            actions: [
+                                              TextButton(
+                                                onPressed:
+                                                    () => Navigator.of(
+                                                      ctx,
+                                                    ).pop(false),
+                                                child: const Text('Cancel'),
+                                              ),
+                                              TextButton(
+                                                onPressed:
+                                                    () => Navigator.of(
+                                                      ctx,
+                                                    ).pop(true),
+                                                style: TextButton.styleFrom(
+                                                  foregroundColor:
+                                                      Theme.of(
+                                                        ctx,
+                                                      ).colorScheme.onError,
+                                                  backgroundColor:
+                                                      Theme.of(
+                                                        ctx,
+                                                      ).colorScheme.error,
+                                                ),
+                                                child: const Text('Delete'),
+                                              ),
+                                            ],
                                           ),
-                                          child: const Text('Delete'),
+                                    );
+                                    if (confirm != true) return;
+                                    setState(() => _deleting = true);
+                                    try {
+                                      await svc.deleteEvent(widget.eventId);
+                                      navigator.pop(true);
+                                    } catch (e) {
+                                      if (!mounted) return;
+                                      setState(() => _deleting = false);
+                                      messenger?.showSnackBar(
+                                        SnackBar(
+                                          content: Text('Failed to delete: $e'),
                                         ),
-                                      ],
-                                    ),
-                                  );
-                                  if (confirm != true) return;
-                                  setState(() => _deleting = true);
-                                  try {
-                                    await svc.deleteEvent(widget.eventId);
-                                    navigator.pop(true);
-                                  } catch (e) {
-                                    if (!mounted) return;
-                                    setState(() => _deleting = false);
-                                    messenger?.showSnackBar(SnackBar(content: Text('Failed to delete: $e')));
-                                  }
-                                },
+                                      );
+                                    }
+                                  },
                           icon: Icon(Icons.delete, color: scheme.error),
-                          label: Text('Delete', style: TextStyle(color: scheme.error)),
+                          label: Text(
+                            'Delete',
+                            style: TextStyle(color: scheme.error),
+                          ),
                         ),
                     ],
                   ),
                 if (canModify) const SizedBox(height: 8),
                 if (event.startDateTime != null)
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
                       color: scheme.secondaryContainer,
                       borderRadius: BorderRadius.circular(12),
@@ -301,7 +371,10 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                       Icon(Icons.place, size: 18, color: scheme.primary),
                       const SizedBox(width: 6),
                       Expanded(
-                        child: Text(event.location!.trim(), style: TextStyle(color: scheme.onSurfaceVariant)),
+                        child: Text(
+                          event.location!.trim(),
+                          style: TextStyle(color: scheme.onSurfaceVariant),
+                        ),
                       ),
                     ],
                   ),

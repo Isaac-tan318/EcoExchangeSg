@@ -32,12 +32,14 @@ class _CreatePostState extends State<CreatePost> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Subscribe to connectivity changes
+    // Subscribe to connectivity for offline mode handling
     GetIt.instance<ConnectivityService>().isOnline$.listen((isOnline) {
       if (!mounted) return;
       setState(() => _online = isOnline);
     });
     final args = ModalRoute.of(context)?.settings.arguments;
+
+    // used for reply feature, automatically fills up title with @(user ur replying to)
     if (args is Map<String, dynamic>) {
       final initialTitle = (args['initialTitle'] ?? '') as String;
       final mentionAuthorId = (args['mentionAuthorId'] ?? '') as String;
@@ -193,11 +195,22 @@ class _CreatePostState extends State<CreatePost> {
 
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
 
-      body: PostForm(
-        formKey: _formKey,
-        titleController: _titleCtrl,
-        descriptionController: _descCtrl,
-        imageBase64: _imageBase64,
+      body: SafeArea(
+        child: LayoutBuilder(
+          builder:
+              (context, constraints) => SingleChildScrollView(
+                padding: const EdgeInsets.only(bottom: 100),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                  child: PostForm(
+                    formKey: _formKey,
+                    titleController: _titleCtrl,
+                    descriptionController: _descCtrl,
+                    imageBase64: _imageBase64,
+                  ),
+                ),
+              ),
+        ),
       ),
     );
   }

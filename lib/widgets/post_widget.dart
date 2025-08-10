@@ -15,23 +15,23 @@ String _relativeTime(DateTime date) {
   if (diff.inSeconds < 60) return 'just now';
   if (diff.inMinutes < 60) return '${diff.inMinutes} min ago';
   if (diff.inHours < 24) {
-    final h = diff.inHours;
-    return '$h ${h == 1 ? 'hour' : 'hours'} ago';
+    final hours = diff.inHours;
+    return '$hours ${hours == 1 ? 'hour' : 'hours'} ago';
   }
   if (diff.inDays < 7) {
-    final d = diff.inDays;
-    return '$d ${d == 1 ? 'day' : 'days'} ago';
+    final days = diff.inDays;
+    return '$days ${days == 1 ? 'day' : 'days'} ago';
   }
   if (diff.inDays < 30) {
-    final w = (diff.inDays / 7).floor();
-    return '$w ${w == 1 ? 'week' : 'weeks'} ago';
+    final weeks = (diff.inDays / 7).floor();
+    return '$weeks ${weeks == 1 ? 'week' : 'weeks'} ago';
   }
   if (diff.inDays < 365) {
-    final m = (diff.inDays / 30).floor();
-    return '$m ${m == 1 ? 'month' : 'months'} ago';
+    final months = (diff.inDays / 30).floor();
+    return '$months ${months == 1 ? 'month' : 'months'} ago';
   }
-  final y = (diff.inDays / 365).floor();
-  return '$y ${y == 1 ? 'year' : 'years'} ago';
+  final years = (diff.inDays / 365).floor();
+  return '$years ${years == 1 ? 'year' : 'years'} ago';
 }
 
 class PostWidget extends StatelessWidget {
@@ -66,6 +66,7 @@ class PostWidget extends StatelessWidget {
               style: TextStyle(
                 fontSize: texttheme.headlineMedium!.fontSize,
                 fontWeight: FontWeight.w100,
+                color: scheme.onSurface,
               ),
             ),
             SizedBox(height: 15),
@@ -84,7 +85,10 @@ class PostWidget extends StatelessWidget {
             ],
             Text(
               post.description?.toString() ?? '',
-              style: TextStyle(fontSize: texttheme.bodyLarge!.fontSize),
+              style: TextStyle(
+                fontSize: texttheme.bodyLarge!.fontSize,
+                color: scheme.onSurface,
+              ),
               maxLines: 3,
               overflow: TextOverflow.ellipsis,
             ),
@@ -157,6 +161,7 @@ class _UserPostWidgetState extends State<UserPostWidget> {
                   style: TextStyle(
                     fontSize: texttheme.headlineMedium!.fontSize,
                     fontWeight: FontWeight.w100,
+                    color: scheme.onSurface,
                   ),
                 ),
 
@@ -255,7 +260,10 @@ class _UserPostWidgetState extends State<UserPostWidget> {
             ],
             Text(
               widget.post.description?.toString() ?? '',
-              style: TextStyle(fontSize: texttheme.bodyLarge!.fontSize),
+              style: TextStyle(
+                fontSize: texttheme.bodyLarge!.fontSize,
+                color: scheme.onSurface,
+              ),
               maxLines: 3,
               overflow: TextOverflow.ellipsis,
             ),

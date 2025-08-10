@@ -80,252 +80,283 @@ class _LoginScreenState extends State<LoginScreen> {
     var nav = Navigator.of(context);
 
     return Scaffold(
-      body: Center(
-        child: Column(
-          children: [
-            SizedBox(height: 60),
-            CircleAvatar(
-              radius: 87.5,
-              child: Image.asset('assets/images/logo.png'),
-            ),
-            SizedBox(height: 20),
-            Text(
-              "Login",
-              style: TextStyle(fontSize: texttheme.headlineLarge!.fontSize),
-            ),
-            SizedBox(height: 20),
+      body: SafeArea(
+        child: LayoutBuilder(
+          builder: (context, constraints) => SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              child: Center(
+                child: Builder(builder: (context) {
+                  final isLandscape =
+                      MediaQuery.of(context).orientation == Orientation.landscape;
 
-            // fields + login button
-            Form(
-              key: form,
-              child: Column(
-                children: [
-                  Field(
-                    color: scheme.surfaceContainer,
-                    child: TextFormField(
-                      keyboardType: TextInputType.emailAddress,
-                      decoration: InputDecoration.collapsed(hintText: "Email"),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Email is required';
-                        }
-                        // Email pattern check
-                        final emailRegex = RegExp(r"^[^@\s]+@[^@\s]+\.[^@\s]+");
-                        if (!emailRegex.hasMatch(value)) {
-                          return 'Enter a valid email address';
-                        }
-                        return null;
-                      },
-                      onSaved: (value) {
-                        email = value!;
-                      },
-                    ),
-                  ),
-                  SizedBox(height: 15),
-                  Field(
-                    padding: EdgeInsets.symmetric(horizontal: 10),
-                    color: scheme.surfaceContainer,
-                    child: TextFormField(
-                      keyboardType: TextInputType.visiblePassword,
-                      obscureText: !showPassword,
-                      decoration: InputDecoration(
-                        hintText: "Password",
-                        border: InputBorder.none,
-                        suffixIcon: IconButton(
-                          icon: Icon(
-                            showPassword
-                                ? Icons.visibility
-                                : Icons.visibility_off,
-                          ),
-                          onPressed: () {
-                            setState(() {
-                              showPassword = !showPassword;
-                            });
-                          },
-                        ),
+                  // Shared widgets
+                  final logo = Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (!isLandscape) const SizedBox(height: 60),
+                      CircleAvatar(
+                        radius: 87.5,
+                        child: Image.asset('assets/images/logo.png'),
                       ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Password is required';
-                        }
-                        return null;
-                      },
-                      onSaved: (value) {
-                        password = value!;
-                      },
-                    ),
-                  ),
+                      if (!isLandscape) const SizedBox(height: 20),
+                    ],
+                  );
 
-                  SizedBox(height: 15),
+                  final title = Text(
+                    "Login",
+                    style: TextStyle(fontSize: texttheme.headlineLarge!.fontSize),
+                  );
 
-                  ElevatedButton(
-                    onPressed:
-                        isLoading
-                            ? null
-                            : () {
-                              if (form.currentState!.validate()) {
-                                login(context);
+                  final formSection = Form(
+                    key: form,
+                    child: Column(
+                      children: [
+                        Field(
+                          color: scheme.surfaceContainer,
+                          child: TextFormField(
+                            keyboardType: TextInputType.emailAddress,
+                            decoration:
+                                const InputDecoration.collapsed(hintText: "Email"),
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Email is required';
                               }
+                              // Email pattern check
+                              final emailRegex = RegExp(r"^[^@\s]+@[^@\s]+\.[^@\s]+");
+                              if (!emailRegex.hasMatch(value)) {
+                                return 'Enter a valid email address';
+                              }
+                              return null;
                             },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: scheme.tertiaryContainer,
-                      foregroundColor: scheme.onTertiaryContainer,
-                      textStyle: TextStyle(fontWeight: FontWeight.w600),
-                    ),
-                    child:
-                        isLoading
-                            ? SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                  scheme.onTertiaryContainer,
+                            onSaved: (value) => email = value!,
+                          ),
+                        ),
+                        const SizedBox(height: 15),
+                        Field(
+                          padding: const EdgeInsets.symmetric(horizontal: 10),
+                          color: scheme.surfaceContainer,
+                          child: TextFormField(
+                            keyboardType: TextInputType.visiblePassword,
+                            obscureText: !showPassword,
+                            decoration: InputDecoration(
+                              hintText: "Password",
+                              border: InputBorder.none,
+                              suffixIcon: IconButton(
+                                icon: Icon(
+                                  showPassword
+                                      ? Icons.visibility
+                                      : Icons.visibility_off,
                                 ),
-                              ),
-                            )
-                            : Text(
-                              "Login",
-                              style: TextStyle(
-                                fontSize: texttheme.bodyLarge!.fontSize,
+                                onPressed: () => setState(() {
+                                  showPassword = !showPassword;
+                                }),
                               ),
                             ),
-                  ),
-                ],
-              ),
-            ),
-            SizedBox(height: 40),
-
-            // Login with google
-            ElevatedButton(
-              onPressed:
-                  isGoogleLoading
-                      ? null
-                      : () async {
-                        if (mounted) {
-                          setState(() {
-                            isGoogleLoading = true;
-                          });
-                        }
-                        try {
-                          // Adds role if user is signing up with google
-                          var result = await firebaseService.signInWithGoogle(
-                            'user',
-                          );
-                          if (result.user != null) {
-                            if (mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text("Google login successful!"),
-                                ),
-                              );
-                            }
-                            await GetIt.instance<NotificationService>()
-                                .promptForPermissionsIfFirstLogin();
-                            if (mounted) {
-                              nav.pushReplacementNamed(HomeScreen.routeName);
-                            }
-                          } else {
-                            if (mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text(
-                                    "Google login failed: No user returned.",
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Password is required';
+                              }
+                              return null;
+                            },
+                            onSaved: (value) => password = value!,
+                          ),
+                        ),
+                        const SizedBox(height: 15),
+                        ElevatedButton(
+                          onPressed: isLoading
+                              ? null
+                              : () {
+                                  if (form.currentState!.validate()) {
+                                    login(context);
+                                  }
+                                },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: scheme.tertiaryContainer,
+                            foregroundColor: scheme.onTertiaryContainer,
+                            textStyle: const TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                          child: isLoading
+                              ? SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      scheme.onTertiaryContainer,
+                                    ),
+                                  ),
+                                )
+                              : Text(
+                                  "Login",
+                                  style: TextStyle(
+                                    fontSize: texttheme.bodyLarge!.fontSize,
                                   ),
                                 ),
-                              );
-                            }
-                          }
-                        } catch (error) {
-                          if (mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  "Google login failed: ${error.toString()}",
-                                ),
-                              ),
-                            );
-                          }
-                        } finally {
-                          if (mounted) {
-                            setState(() {
-                              isGoogleLoading = false;
-                            });
-                          }
-                        }
-                      },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  side: BorderSide(color: Colors.black), // Border color
-                ),
-                foregroundColor: scheme.onSurface,
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (!isGoogleLoading) ...[
-                    Image.asset(
-                      'assets/images/google.png',
-                      width: 20,
-                      height: 20,
+                        ),
+                      ],
                     ),
-                    SizedBox(width: 8),
-                  ],
-                  if (isGoogleLoading)
-                    SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          scheme.onSurface,
+                  );
+
+                  final extras = Column(
+                    children: [
+                      const SizedBox(height: 40),
+                      // Login with google
+                      ElevatedButton(
+                        onPressed: isGoogleLoading
+                            ? null
+                            : () async {
+                                if (mounted) setState(() => isGoogleLoading = true);
+                                try {
+                                  var result = await firebaseService.signInWithGoogle('user');
+                                  if (result.user != null) {
+                                    if (mounted) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(
+                                          content: Text("Google login successful!"),
+                                        ),
+                                      );
+                                    }
+                                    await GetIt.instance<NotificationService>()
+                                        .promptForPermissionsIfFirstLogin();
+                                    if (mounted) {
+                                      nav.pushReplacementNamed(HomeScreen.routeName);
+                                    }
+                                  } else {
+                                    if (mounted) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(
+                                          content: Text(
+                                            "Google login failed: No user returned.",
+                                          ),
+                                        ),
+                                      );
+                                    }
+                                  }
+                                } catch (error) {
+                                  if (mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                          "Google login failed: ${error.toString()}",
+                                        ),
+                                      ),
+                                    );
+                                  }
+                                } finally {
+                                  if (mounted) setState(() => isGoogleLoading = false);
+                                }
+                              },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: scheme.surface,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            side: BorderSide(color: scheme.outline),
+                          ),
+                          foregroundColor: scheme.onSurface,
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (!isGoogleLoading) ...[
+                              Image.asset('assets/images/google.png', width: 20, height: 20),
+                              const SizedBox(width: 8),
+                            ],
+                            if (isGoogleLoading)
+                              SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(scheme.onSurface),
+                                ),
+                              )
+                            else
+                              const Text("Login with google"),
+                          ],
                         ),
                       ),
-                    )
-                  else
-                    Text("Login with google"),
-                ],
-              ),
-            ),
-            SizedBox(height: 25),
-            TextButton(
-              onPressed: () {
-                nav.pushNamed(ForgotPasswordScreen.routeName);
-              },
-              child: Text(
-                "Forgot Password?",
-                style: TextStyle(decoration: TextDecoration.underline),
-              ),
-            ),
-            SizedBox(height: 5),
+                      const SizedBox(height: 25),
+                      TextButton(
+                        onPressed: () => nav.pushNamed(ForgotPasswordScreen.routeName),
+                        child: const Text(
+                          "Forgot Password?",
+                          style: TextStyle(decoration: TextDecoration.underline),
+                        ),
+                      ),
+                      const SizedBox(height: 5),
+                      TextButton(
+                        onPressed: () => nav.pushReplacementNamed(SignupScreen.routeName),
+                        child: const Text(
+                          "First time? Create new account",
+                          style: TextStyle(decoration: TextDecoration.underline),
+                        ),
+                      ),
+                      const SizedBox(height: 25),
+                      ElevatedButton(
+                        onPressed: () => nav.pushReplacementNamed(OrganisationLoginScreen.routeName),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: scheme.primaryContainer,
+                          foregroundColor: scheme.onPrimaryContainer,
+                          padding: const EdgeInsets.fromLTRB(20, 15, 20, 15),
+                        ),
+                        child: const Text("Organisation login"),
+                      ),
+                    ],
+                  );
 
-            // Sign up link
-            TextButton(
-              onPressed: () {
-                nav.pushReplacementNamed(SignupScreen.routeName);
-              },
-              child: Text(
-                "First time? Create new account",
-                style: TextStyle(decoration: TextDecoration.underline),
-              ),
-            ),
-            SizedBox(height: 25),
+                  if (isLandscape) {
+                    return Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Expanded(
+                          flex: 1,
+                          child: Align(
+                            alignment: Alignment.center,
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                CircleAvatar(
+                                  radius: 87.5,
+                                  child: Image.asset('assets/images/logo.png'),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 24),
+                        Expanded(
+                          flex: 2,
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              title,
+                              const SizedBox(height: 20),
+                              formSection,
+                              extras,
+                            ],
+                          ),
+                        ),
+                      ],
+                    );
+                  }
 
-            // Organisation login button
-            ElevatedButton(
-              onPressed: () {
-                nav.pushReplacementNamed(OrganisationLoginScreen.routeName);
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: scheme.primaryContainer,
-                foregroundColor: scheme.onPrimaryContainer,
-                padding: EdgeInsets.fromLTRB(20, 15, 20, 15),
+                  // Portrait (default) layout
+                  return Column(
+                    children: [
+                      logo,
+                      title,
+                      const SizedBox(height: 20),
+                      formSection,
+                      extras,
+                    ],
+                  );
+                }),
               ),
-              child: Text("Organisation login"),
             ),
-          ],
+          ),
         ),
       ),
     );

@@ -143,7 +143,7 @@ class _NETSQRState extends State<NETSQR> {
   }
 
   // Builds the UI based on the QR code and transaction state.
-  // Displays QR code, success/fail status, and registration button.
+  // Displays QR code and success/fail statusn.
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -154,12 +154,12 @@ class _NETSQRState extends State<NETSQR> {
                 message == null
             ? displayQRCode()
             : message == 'QR code scanned' && responseCode == '00'
-                ? NETSSuccess()
-                : responseCode != null
-                    ? NETSFail()
-                    : message == "Timeout"
-                        ? displayQRCode()
-                        : Center(),
+            ? NETSSuccess()
+            : responseCode != null
+            ? NETSFail()
+            : message == "Timeout"
+            ? displayQRCode()
+            : Center(),
       ],
     );
   }

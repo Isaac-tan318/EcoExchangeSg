@@ -49,10 +49,10 @@ class _PostsScreenState extends State<PostsScreen> {
       'November',
       'December',
     ];
-    final day = d.day; // no leading zero for readability
-    final monthName = months[d.month - 1];
-    final y = d.year;
-    return '$day $monthName $y';
+  final day = d.day; // no leading zero for readability
+  final monthName = months[d.month - 1];
+  final year = d.year;
+  return '$day $monthName $year';
   }
 
   String _timeLabel() {
@@ -378,8 +378,8 @@ class Slide extends StatelessWidget {
               );
             },
 
-            backgroundColor: Colors.green,
-            foregroundColor: Colors.white,
+            backgroundColor: Theme.of(context).colorScheme.secondary,
+            foregroundColor: Theme.of(context).colorScheme.onSecondary,
             icon: Icons.reply,
             label: 'Reply',
           ),

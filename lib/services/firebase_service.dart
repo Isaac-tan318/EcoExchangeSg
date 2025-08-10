@@ -143,13 +143,13 @@ class FirebaseService {
         ),
       );
     }
-  return FirebaseFirestore.instance.collection('users').doc(uid).snapshots().map((
+    return FirebaseFirestore.instance.collection('users').doc(uid).snapshots().map((
       snapshot,
     ) {
       if (snapshot.exists) {
         final data = snapshot.data() as Map<String, dynamic>;
         return UserModel.User(
-      pfp: (data['pfp'] ?? ''),
+          pfp: (data['pfp'] ?? ''),
           username: (data['username'] ?? 'Unknown User'),
           bio:
               (data['bio'] ??
@@ -159,7 +159,7 @@ class FirebaseService {
       } else {
         // Return default user if document doesn't exist
         return UserModel.User(
-      pfp: '',
+          pfp: '',
           username: 'Unknown User',
           bio:
               "Environmental advocate passionate in promoting sustainable living and conservation",
@@ -333,10 +333,10 @@ class FirebaseService {
     if (user == null) throw Exception('Not authenticated');
     final payload = Map<String, dynamic>.from(data);
     payload.removeWhere((k, v) => v == null);
-    await FirebaseFirestore.instance.collection('users').doc(user.uid).set(
-      payload,
-      SetOptions(merge: true),
-    );
+    await FirebaseFirestore.instance
+        .collection('users')
+        .doc(user.uid)
+        .set(payload, SetOptions(merge: true));
   }
 
   // Posts CRUD
@@ -430,7 +430,7 @@ class FirebaseService {
     DateTime? startDate,
     DateTime? endDate,
   }) {
-    Query<Map<String, dynamic>> q = _postsCollection;
+  Query<Map<String, dynamic>> queryRef = _postsCollection;
     final bool hasAuthor = authorId != null;
     final bool hasRange = startDate != null || endDate != null;
     bool serverOrders = false; // whether we apply server-side orderBy
@@ -438,19 +438,19 @@ class FirebaseService {
     // Select with filter criteria (other than identifier):
     // Filter posts by authorId if provided.
     if (authorId != null) {
-      q = q.where('authorId', isEqualTo: authorId);
+      queryRef = queryRef.where('authorId', isEqualTo: authorId);
     }
 
     // Select with multiple filter criteria (same field):
     // Date range filters on the same field 'date_posted'.
     if (startDate != null) {
-      q = q.where(
+  queryRef = queryRef.where(
         'date_posted',
         isGreaterThanOrEqualTo: Timestamp.fromDate(startDate),
       );
     }
     if (endDate != null) {
-      q = q.where(
+  queryRef = queryRef.where(
         'date_posted',
         isLessThanOrEqualTo: Timestamp.fromDate(endDate),
       );
@@ -462,10 +462,10 @@ class FirebaseService {
     // If filtering by author only, skip server-side order to avoid composite index,
     // and we will sort on client instead.
     if (hasRange) {
-      q = q.orderBy('date_posted', descending: descending);
+  queryRef = queryRef.orderBy('date_posted', descending: descending);
       serverOrders = true;
     } else if (!hasAuthor) {
-      q = q.orderBy('date_posted', descending: descending);
+  queryRef = queryRef.orderBy('date_posted', descending: descending);
       serverOrders = true;
     } else {
       serverOrders = false;
@@ -477,9 +477,10 @@ class FirebaseService {
     // in Firestore (authorId asc, date_posted asc/desc). If you see an index error,
     // follow the link in the error to create the suggested index.
 
-    return q.snapshots().map((s) {
-      final list =
-          s.docs.map((d) => _postFromMap({...d.data(), 'id': d.id})).toList();
+    return queryRef.snapshots().map((snapshot) {
+      final list = snapshot.docs
+          .map((doc) => _postFromMap({...doc.data(), 'id': doc.id}))
+          .toList();
       if (!serverOrders) {
         list.sort(
           (a, b) =>
@@ -521,12 +522,9 @@ class FirebaseService {
 
   // Increment awards counter on a post (creates field if missing)
   Future<void> incrementPostAwards(String id) async {
-    await _postsCollection.doc(id).set(
-      {
-        'awards': FieldValue.increment(1),
-      },
-      SetOptions(merge: true),
-    );
+    await _postsCollection.doc(id).set({
+      'awards': FieldValue.increment(1),
+    }, SetOptions(merge: true));
   }
 
   // Helper to convert Firestore map to the Post model
@@ -612,13 +610,14 @@ class FirebaseService {
     bool orderByStartAsc = true,
   }) {
     // Select with sort order: order events by startDateTime.
-    Query<Map<String, dynamic>> q = _eventsCollection.orderBy(
+    Query<Map<String, dynamic>> queryRef = _eventsCollection.orderBy(
       'startDateTime',
       descending: !orderByStartAsc,
     );
-    return q.snapshots().map(
-      (s) =>
-          s.docs.map((d) => _eventFromMap({...d.data(), 'id': d.id})).toList(),
+    return queryRef.snapshots().map(
+      (snapshot) => snapshot.docs
+          .map((doc) => _eventFromMap({...doc.data(), 'id': doc.id}))
+          .toList(),
     );
   }
 
@@ -637,23 +636,23 @@ class FirebaseService {
     DateTime? startDate,
     DateTime? endDate,
   }) async {
-    Query<Map<String, dynamic>> q = _postsCollection;
+    Query<Map<String, dynamic>> queryRef = _postsCollection;
     if (authorId != null) {
-      q = q.where('authorId', isEqualTo: authorId);
+      queryRef = queryRef.where('authorId', isEqualTo: authorId);
     }
     if (startDate != null) {
-      q = q.where(
+      queryRef = queryRef.where(
         'date_posted',
         isGreaterThanOrEqualTo: Timestamp.fromDate(startDate),
       );
     }
     if (endDate != null) {
-      q = q.where(
+      queryRef = queryRef.where(
         'date_posted',
         isLessThanOrEqualTo: Timestamp.fromDate(endDate),
       );
     }
-    final aggSnap = await q.count().get();
+    final aggSnap = await queryRef.count().get();
     return aggSnap.count ?? 0;
   }
 
@@ -679,11 +678,8 @@ class FirebaseService {
 
   // Increment awards counter on an event (creates field if missing)
   Future<void> incrementEventAwards(String id) async {
-    await _eventsCollection.doc(id).set(
-      {
-        'awards': FieldValue.increment(1),
-      },
-      SetOptions(merge: true),
-    );
+    await _eventsCollection.doc(id).set({
+      'awards': FieldValue.increment(1),
+    }, SetOptions(merge: true));
   }
 }

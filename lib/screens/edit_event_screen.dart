@@ -16,7 +16,7 @@ class EditEventScreen extends StatefulWidget {
 
 class _EditEventScreenState extends State<EditEventScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _svc = GetIt.instance<FirebaseService>();
+  final firebaseService = GetIt.instance<FirebaseService>();
   final _titleCtrl = TextEditingController();
   final _descCtrl = TextEditingController();
   final _locCtrl = TextEditingController();
@@ -31,7 +31,7 @@ class _EditEventScreenState extends State<EditEventScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Subscribe to connectivity changes
+    // Subscribe to connectivity for offline mode handling
     GetIt.instance<ConnectivityService>().isOnline$.listen((isOnline) {
       if (!mounted) return;
       setState(() => _online = isOnline);
@@ -102,7 +102,7 @@ class _EditEventScreenState extends State<EditEventScreen> {
         if (_start != null) 'startDateTime': _start,
         if (_end != null) 'endDateTime': _end,
       };
-      await _svc.updateEvent(_event.id!, data);
+      await firebaseService.updateEvent(_event.id!, data);
       if (!mounted) return;
       Navigator.of(context).pop();
     } catch (e) {

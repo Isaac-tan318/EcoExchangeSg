@@ -30,9 +30,7 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
   @override
   void initState() {
     super.initState();
-    // Subscribe to connectivity changes and reflect the online/offline state
-    // in this screen. We check `mounted` before setState to avoid calling it
-    // after the widget has been disposed (e.g., after navigating away).
+    // Subscribe to connectivity offline mode handling
     _connSub = GetIt.instance<ConnectivityService>().isOnline$.listen((
       isOnline,
     ) {
@@ -107,23 +105,23 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
     if (diff.inSeconds < 60) return 'just now';
     if (diff.inMinutes < 60) return '${diff.inMinutes} min ago';
     if (diff.inHours < 24) {
-      final h = diff.inHours;
-      return '$h ${h == 1 ? 'hour' : 'hours'} ago';
+      final hours = diff.inHours;
+      return '$hours ${hours == 1 ? 'hour' : 'hours'} ago';
     }
     if (diff.inDays < 7) {
-      final d = diff.inDays;
-      return '$d ${d == 1 ? 'day' : 'days'} ago';
+      final days = diff.inDays;
+      return '$days ${days == 1 ? 'day' : 'days'} ago';
     }
     if (diff.inDays < 30) {
-      final w = (diff.inDays / 7).floor();
-      return '$w ${w == 1 ? 'week' : 'weeks'} ago';
+      final weeks = (diff.inDays / 7).floor();
+      return '$weeks ${weeks == 1 ? 'week' : 'weeks'} ago';
     }
     if (diff.inDays < 365) {
-      final m = (diff.inDays / 30).floor();
-      return '$m ${m == 1 ? 'month' : 'months'} ago';
+      final months = (diff.inDays / 30).floor();
+      return '$months ${months == 1 ? 'month' : 'months'} ago';
     }
-    final y = (diff.inDays / 365).floor();
-    return '$y ${y == 1 ? 'year' : 'years'} ago';
+    final years = (diff.inDays / 365).floor();
+    return '$years ${years == 1 ? 'year' : 'years'} ago';
   }
 
   @override
@@ -205,7 +203,10 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
                               mainAxisSize: MainAxisSize.min,
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text('Send an award', style: Theme.of(ctx).textTheme.titleLarge),
+                                Text(
+                                  'Send an award',
+                                  style: Theme.of(ctx).textTheme.titleLarge,
+                                ),
                                 const SizedBox(height: 8),
                                 Text(
                                   'Scan the NETS QR to tip the creator. Once paid, tap Award to confirm.',
@@ -214,16 +215,23 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
                                 const SizedBox(height: 12),
                                 NETSQR((BuildContext c) async {
                                   try {
-                                    await GetIt.instance<FirebaseService>().incrementPostAwards(widget.postId);
+                                    await GetIt.instance<FirebaseService>()
+                                        .incrementPostAwards(widget.postId);
                                     if (mounted) Navigator.of(ctx).pop();
                                     if (!mounted) return;
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(content: Text('Thanks for your award!')),
+                                      const SnackBar(
+                                        content: Text('Thanks for your award!'),
+                                      ),
                                     );
                                   } catch (e) {
                                     if (!mounted) return;
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(content: Text('Failed to record award: $e')),
+                                      SnackBar(
+                                        content: Text(
+                                          'Failed to record award: $e',
+                                        ),
+                                      ),
                                     );
                                   }
                                 }),

@@ -30,7 +30,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   void initState() {
     super.initState();
-    _connSub = GetIt.instance<ConnectivityService>().isOnline$.listen((isOnline) {
+    _connSub = GetIt.instance<ConnectivityService>().isOnline$.listen((
+      isOnline,
+    ) {
       if (!mounted) return;
       setState(() => _online = isOnline);
     });
@@ -45,7 +47,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _changePfp() async {
     if (!_online) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('You are offline. Please reconnect to update your picture.')),
+        const SnackBar(
+          content: Text(
+            'You are offline. Please reconnect to update your picture.',
+          ),
+        ),
       );
       return;
     }
@@ -62,9 +68,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
       await firebaseService.updateCurrentUserProfile({'pfp': b64});
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to update picture: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to update picture: $e')));
     }
   }
 
@@ -144,9 +150,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         CircleAvatar(
                           radius: 80,
                           backgroundImage: avatar,
-                          child: avatar == null
-                              ? const Icon(Icons.person, size: 64)
-                              : null,
+                          child:
+                              avatar == null
+                                  ? const Icon(Icons.person, size: 64)
+                                  : null,
                         ),
                         Positioned(
                           bottom: 4,
@@ -184,6 +191,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         bio,
                         style: TextStyle(
                           fontSize: texttheme.bodyLarge!.fontSize,
+                          color: scheme.onSurface,
                         ),
                       ),
                       SizedBox(height: 20),
@@ -192,6 +200,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         "Activity",
                         style: TextStyle(
                           fontSize: texttheme.headlineMedium!.fontSize,
+                          color: scheme.onSurface,
                         ),
                       ),
 
@@ -228,6 +237,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     "Posts",
                     style: TextStyle(
                       fontSize: texttheme.headlineMedium!.fontSize,
+                      color: scheme.onSurface,
                     ),
                   ),
                 ),

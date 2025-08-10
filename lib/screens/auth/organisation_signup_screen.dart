@@ -52,8 +52,14 @@ class OrganisationSignupScreen extends StatelessWidget {
     }
 
     return Scaffold(
-      body: Center(
-        child: Column(
+      body: SafeArea(
+        child: LayoutBuilder(
+          builder: (context, constraints) => SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              child: Center(
+                child: Column(
           children: [
             SizedBox(height: 60),
             CircleAvatar(radius: 87.5, child: Icon(Icons.business, size: 80)),
@@ -172,6 +178,10 @@ class OrganisationSignupScreen extends StatelessWidget {
               ),
             ),
           ],
+                ),
+              ),
+            ),
+          ),
         ),
       ),
     );

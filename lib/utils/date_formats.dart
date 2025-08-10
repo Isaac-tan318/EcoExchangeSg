@@ -7,6 +7,8 @@ class DateFormats {
   static String dMonthY(DateTime dt, {String? locale}) =>
       DateFormat('d MMMM yyyy', locale).format(dt); // 10 August 2025
 
-  static String dMonthYHm(DateTime dt, {String? locale}) =>
-      DateFormat('d MMMM yyyy HH:mm', locale).format(dt); // 10 August 2025 14:30
+  static String dMonthYHm(DateTime dt, {String? locale}) => DateFormat(
+    'd MMMM yyyy HH:mm',
+    locale,
+  ).format(dt); // 10 August 2025 14:30
 }

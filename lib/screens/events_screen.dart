@@ -19,7 +19,7 @@ class EventsScreen extends StatefulWidget {
 
 class _EventsScreenState extends State<EventsScreen>
     with SingleTickerProviderStateMixin {
-  final FirebaseService _svc = GetIt.instance<FirebaseService>();
+  final FirebaseService firebaseService = GetIt.instance<FirebaseService>();
   bool _isOrganiser = false;
   bool _loadingRole = true;
   bool _online = true;
@@ -27,11 +27,13 @@ class _EventsScreenState extends State<EventsScreen>
   CalendarFormat _calFormat = CalendarFormat.month;
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
+  late final Stream<List<Event>> _eventsStream;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    _eventsStream = firebaseService.getEventsAsStream();
     _initRole();
     GetIt.instance<ConnectivityService>().isOnline$.listen((isOnline) {
       if (!mounted) return;
@@ -40,7 +42,7 @@ class _EventsScreenState extends State<EventsScreen>
   }
 
   Future<void> _initRole() async {
-    final isOrg = await _svc.isCurrentUserOrganiser();
+    final isOrg = await firebaseService.isCurrentUserOrganiser();
     if (!mounted) return;
     setState(() {
       _isOrganiser = isOrg;
@@ -52,6 +54,7 @@ class _EventsScreenState extends State<EventsScreen>
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final texttheme = Theme.of(context).textTheme;
+  final maxContentWidth = MediaQuery.of(context).size.shortestSide;
 
     return Scaffold(
       appBar: PreferredSize(
@@ -66,22 +69,29 @@ class _EventsScreenState extends State<EventsScreen>
           ),
         ),
       ),
-      body: StreamBuilder<List<Event>>(
-        stream: _svc.getEventsAsStream(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
+      body: Center(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: maxContentWidth),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8.0),
+            child: StreamBuilder<List<Event>>(
+              stream: _eventsStream,
+              initialData: const [],
+              builder: (context, snapshot) {
           if (snapshot.hasError) {
             return Center(child: Text('Error: ${snapshot.error}'));
           }
           final events = snapshot.data ?? [];
+          if (snapshot.connectionState == ConnectionState.waiting &&
+              events.isEmpty) {
+            return const Center(child: CircularProgressIndicator());
+          }
           // Group events by day using startDateTime date
           final Map<DateTime, List<Event>> byDay = {};
-          for (final e in events) {
-            final dt = e.startDateTime!;
+          for (final event in events) {
+            final dt = event.startDateTime!;
             final dayKey = DateTime(dt.year, dt.month, dt.day);
-            byDay.putIfAbsent(dayKey, () => []).add(e);
+            byDay.putIfAbsent(dayKey, () => []).add(event);
           }
 
           // make it the current day if nothing is chosen if not make it the selected day
@@ -124,57 +134,57 @@ class _EventsScreenState extends State<EventsScreen>
                       child: Center(child: Text('No events yet')),
                     );
                   }
-                  final e = events[index - 1];
+          final event = events[index - 1];
                   return InkWell(
                     onTap: () {
                       Navigator.of(context).push(
                         MaterialPageRoute(
-                          builder: (_) => EventDetailsScreen(eventId: e.id!),
+              builder: (_) => EventDetailsScreen(eventId: event.id!),
                         ),
                       );
                     },
                     child: EventWidget(
-                      event: e,
+            event: event,
                       trailing:
-                        _isOrganiser
-                            ? PopupMenuButton<String>(
-                              onSelected: (value) async {
-                                if (!_online) {
-                                  ScaffoldMessenger.maybeOf(
-                                    context,
-                                  )?.showSnackBar(
-                                    const SnackBar(
-                                      content: Text(
-                                        'Offline: action unavailable',
+                          _isOrganiser
+                              ? PopupMenuButton<String>(
+                                onSelected: (value) async {
+                                  if (!_online) {
+                                    ScaffoldMessenger.maybeOf(
+                                      context,
+                                    )?.showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                          'Offline: action unavailable',
+                                        ),
                                       ),
-                                    ),
-                                  );
-                                  return;
-                                }
-                                if (value == 'edit') {
-                                  Navigator.of(context).push(
-                                    MaterialPageRoute(
-                                      builder: (_) => const EditEventScreen(),
-                                      settings: RouteSettings(arguments: e),
-                                    ),
-                                  );
-                                } else if (value == 'delete') {
-                                  await _svc.deleteEvent(e.id!);
-                                }
-                              },
-                              itemBuilder:
-                                  (ctx) => const [
-                                    PopupMenuItem(
-                                      value: 'edit',
-                                      child: Text('Edit'),
-                                    ),
-                                    PopupMenuItem(
-                                      value: 'delete',
-                                      child: Text('Delete'),
-                                    ),
-                                  ],
-                            )
-                            : null,
+                                    );
+                                    return;
+                                  }
+                  if (value == 'edit') {
+                                    Navigator.of(context).push(
+                                      MaterialPageRoute(
+                    builder: (_) => const EditEventScreen(),
+                    settings: RouteSettings(arguments: event),
+                                      ),
+                                    );
+                                  } else if (value == 'delete') {
+                  await firebaseService.deleteEvent(event.id!);
+                                  }
+                                },
+                                itemBuilder:
+                                    (ctx) => const [
+                                      PopupMenuItem(
+                                        value: 'edit',
+                                        child: Text('Edit'),
+                                      ),
+                                      PopupMenuItem(
+                                        value: 'delete',
+                                        child: Text('Delete'),
+                                      ),
+                                    ],
+                              )
+                              : null,
                     ),
                   );
                 },
@@ -200,6 +210,34 @@ class _EventsScreenState extends State<EventsScreen>
                       final key = DateTime(day.year, day.month, day.day);
                       return byDay[key] ?? const [];
                     },
+                    calendarBuilders: CalendarBuilders<Event>(
+                      markerBuilder: (context, day, events) {
+                        if (events.isEmpty) return const SizedBox.shrink();
+                        final color = Theme.of(context).colorScheme.primary;
+                        final maxDots = 3;
+                        final count =
+                            events.length > maxDots ? maxDots : events.length;
+                        return Align(
+                          alignment: Alignment.bottomCenter,
+                          child: Wrap(
+                            alignment: WrapAlignment.center,
+                            spacing: 2,
+                            runSpacing: 2,
+                            children: List.generate(
+                              count,
+                              (_) => Container(
+                                width: 5,
+                                height: 5,
+                                decoration: BoxDecoration(
+                                  color: color,
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
                     onDaySelected: (selectedDay, focusedDay) {
                       setState(() {
                         _selectedDay = selectedDay;
@@ -222,61 +260,65 @@ class _EventsScreenState extends State<EventsScreen>
                             : ListView.builder(
                               itemCount: byDay[selectedDayKey]!.length,
                               itemBuilder: (context, idx) {
-                                final e = byDay[selectedDayKey]![idx];
+                                final event = byDay[selectedDayKey]![idx];
                                 return InkWell(
                                   onTap: () {
                                     Navigator.of(context).push(
                                       MaterialPageRoute(
-                                        builder: (_) => EventDetailsScreen(eventId: e.id!),
+                                        builder:
+                                            (_) => EventDetailsScreen(
+                                              eventId: event.id!,
+                                            ),
                                       ),
                                     );
                                   },
                                   child: EventWidget(
-                                    event: e,
+                                    event: event,
                                     trailing:
-                                      _isOrganiser
-                                          ? PopupMenuButton<String>(
-                                            onSelected: (value) async {
-                                              if (!_online) {
-                                                ScaffoldMessenger.maybeOf(
-                                                  context,
-                                                )?.showSnackBar(
-                                                  const SnackBar(
-                                                    content: Text(
-                                                      'Offline: action unavailable',
+                                        _isOrganiser
+                                            ? PopupMenuButton<String>(
+                                              onSelected: (value) async {
+                                                if (!_online) {
+                                                  ScaffoldMessenger.maybeOf(
+                                                    context,
+                                                  )?.showSnackBar(
+                                                    const SnackBar(
+                                                      content: Text(
+                                                        'Offline: action unavailable',
+                                                      ),
                                                     ),
-                                                  ),
-                                                );
-                                                return;
-                                              }
-                                              if (value == 'edit') {
-                                                Navigator.of(context).push(
-                                                  MaterialPageRoute(
-                                                    builder:
-                                                        (_) =>
-                                                            const EditEventScreen(),
-                                                    settings: RouteSettings(
-                                                      arguments: e,
+                                                  );
+                                                  return;
+                                                }
+                        if (value == 'edit') {
+                                                  Navigator.of(context).push(
+                                                    MaterialPageRoute(
+                                                      builder:
+                                                          (_) =>
+                                                              const EditEventScreen(),
+                                                      settings: RouteSettings(
+                            arguments: event,
+                                                      ),
                                                     ),
-                                                  ),
-                                                );
-                                              } else if (value == 'delete') {
-                                                await _svc.deleteEvent(e.id!);
-                                              }
-                                            },
-                                            itemBuilder:
-                                                (ctx) => const [
-                                                  PopupMenuItem(
-                                                    value: 'edit',
-                                                    child: Text('Edit'),
-                                                  ),
-                                                  PopupMenuItem(
-                                                    value: 'delete',
-                                                    child: Text('Delete'),
-                                                  ),
-                                                ],
-                                          )
-                                          : null,
+                                                  );
+                                                } else if (value == 'delete') {
+                          await firebaseService
+                            .deleteEvent(event.id!);
+                                                }
+                                              },
+                                              itemBuilder:
+                                                  (ctx) => const [
+                                                    PopupMenuItem(
+                                                      value: 'edit',
+                                                      child: Text('Edit'),
+                                                    ),
+                                                    PopupMenuItem(
+                                                      value: 'delete',
+                                                      child: Text('Delete'),
+                                                    ),
+                                                  ],
+                                            )
+                                            : null,
                                   ),
                                 );
                               },
@@ -286,7 +328,10 @@ class _EventsScreenState extends State<EventsScreen>
               ),
             ],
           );
-        },
+              },
+            ),
+          ),
+        ),
       ),
       floatingActionButton:
           (!_loadingRole && _isOrganiser)

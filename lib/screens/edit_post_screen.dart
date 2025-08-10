@@ -34,7 +34,7 @@ class _EditPostState extends State<EditPost> {
     _descCtrl = TextEditingController(
       text: widget.initial.description?.toString() ?? '',
     );
-    // Subscribe to connectivity changes
+    // Subscribe to connectivity for offline mode handling
     GetIt.instance<ConnectivityService>().isOnline$.listen((isOnline) {
       if (!mounted) return;
       setState(() => _online = isOnline);
@@ -115,11 +115,21 @@ class _EditPostState extends State<EditPost> {
           const SizedBox(width: 20),
         ],
       ),
-      body: PostForm(
-        formKey: _formKey,
-        titleController: _titleCtrl,
-        descriptionController: _descCtrl,
-        imageBase64: widget.initial.imageBase64,
+      body: SafeArea(
+        child: LayoutBuilder(
+          builder: (context, constraints) => SingleChildScrollView(
+            padding: const EdgeInsets.only(bottom: 40),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              child: PostForm(
+                formKey: _formKey,
+                titleController: _titleCtrl,
+                descriptionController: _descCtrl,
+                imageBase64: widget.initial.imageBase64,
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }

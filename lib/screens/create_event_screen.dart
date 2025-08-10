@@ -26,7 +26,7 @@ class CreateEventScreen extends StatefulWidget {
 
 class _CreateEventScreenState extends State<CreateEventScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _svc = GetIt.instance<FirebaseService>();
+  final firebaseService = GetIt.instance<FirebaseService>();
 
   final _titleCtrl = TextEditingController();
   final _descCtrl = TextEditingController();
@@ -53,7 +53,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
   List<_PlaceSuggestion> _suggestions = [];
   bool _searching = false;
   bool _webCorsWarned = false;
-  static const String? _nominatimProxyBase = null; // optional web proxy
+  // api used to get address from latitude and longitude
   static String _geoapifyKey = String.fromEnvironment('GEOAPIFY_KEY');
   bool _online = true;
 
@@ -67,20 +67,20 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
   }
 
   Future<void> _init() async {
-    // Load app config first (so web key can be bundled in assets)
+    // Load app config first to get api key
     await AppConfig.load();
     final fromAsset = AppConfig.getString('GEOAPIFY_KEY');
     if ((fromAsset ?? '').isNotEmpty) {
       _geoapifyKey = fromAsset!;
     }
     // Then init role
-    final isOrg = await _svc.isCurrentUserOrganiser();
+    final isOrg = await firebaseService.isCurrentUserOrganiser();
     if (!mounted) return;
     setState(() {
       _isOrganiser = isOrg;
       _loadingRole = false;
     });
-    // connectivity
+    // offline mode handling
     GetIt.instance<ConnectivityService>().isOnline$.listen((isOnline) {
       if (!mounted) return;
       setState(() => _online = isOnline);
@@ -101,8 +101,8 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
   void _onLocFocusChanged() {
     if (_locFocus.hasFocus) {
       // When the field regains focus and has input, re-kick the search debounce
-      final q = _locCtrl.text.trim();
-      if (q.length >= 3) {
+      final query = _locCtrl.text.trim();
+      if (query.length >= 3) {
         _debounce?.cancel();
         _debounce = Timer(const Duration(milliseconds: 10), () {
           if (mounted) _onLocationChanged();
@@ -112,51 +112,63 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
   }
 
   Future<void> _pickStart() async {
-    final d = await showDatePicker(
+    final pickedDate = await showDatePicker(
       context: context,
       initialDate: _start ?? DateTime.now(),
       firstDate: DateTime(2000),
       lastDate: DateTime(2100),
     );
-    if (d == null) return;
-    final t = await showTimePicker(
+    if (pickedDate == null) return;
+    final pickedTime = await showTimePicker(
       context: context,
       initialTime: TimeOfDay.now(),
     );
-    if (t == null) return;
+    if (pickedTime == null) return;
     setState(() {
-      _start = DateTime(d.year, d.month, d.day, t.hour, t.minute);
+      _start = DateTime(
+        pickedDate.year,
+        pickedDate.month,
+        pickedDate.day,
+        pickedTime.hour,
+        pickedTime.minute,
+      );
     });
   }
 
   Future<void> _pickEnd() async {
-    final d = await showDatePicker(
+    final pickedDate = await showDatePicker(
       context: context,
       initialDate: _end ?? (_start ?? DateTime.now()),
       firstDate: _start ?? DateTime(2000),
       lastDate: DateTime(2100),
     );
-    if (d == null) return;
-    final t = await showTimePicker(
+    if (pickedDate == null) return;
+    final pickedTime = await showTimePicker(
       context: context,
       initialTime: TimeOfDay.now(),
     );
-    if (t == null) return;
+    if (pickedTime == null) return;
     setState(() {
-      _end = DateTime(d.year, d.month, d.day, t.hour, t.minute);
+      _end = DateTime(
+        pickedDate.year,
+        pickedDate.month,
+        pickedDate.day,
+        pickedTime.hour,
+        pickedTime.minute,
+      );
     });
   }
 
   void _onLocationChanged() {
-    final q = _locCtrl.text.trim();
+    final query = _locCtrl.text.trim();
     _debounce?.cancel();
-    if (q.length < 3) {
+    if (query.length < 3) {
       setState(() => _suggestions = []);
       return;
     }
     _debounce = Timer(const Duration(milliseconds: 350), () {
       if (_online) {
-        _searchPlaces(q);
+        _searchPlaces(query);
       } else {
         setState(() => _suggestions = []);
         ScaffoldMessenger.of(context).showSnackBar(
@@ -171,21 +183,14 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
     try {
       Uri uri;
       bool parseGeoapify = false;
-      if (kIsWeb && _geoapifyKey.isNotEmpty) {
-        final rawUrl =
-            'https://api.geoapify.com/v1/geocode/autocomplete?text=${Uri.encodeQueryComponent(query)}&limit=5&apiKey=$_geoapifyKey';
-        uri = Uri.parse(rawUrl);
-        parseGeoapify = true;
-      } else {
-        final rawUrl =
-            'https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&q=${Uri.encodeQueryComponent(query)}&limit=5';
-        if (kIsWeb && _nominatimProxyBase == null) {
+      if (kIsWeb) {
+        if (_geoapifyKey.isEmpty) {
           if (!_webCorsWarned && mounted) {
             _webCorsWarned = true;
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
                 content: Text(
-                  'Address search on Web requires a provider with CORS (e.g., Geoapify) or a proxy.',
+                  'Address search on Web requires GEOAPIFY_KEY to be configured.',
                 ),
               ),
             );
@@ -196,39 +201,43 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
           });
           return;
         }
-        uri =
-            _nominatimProxyBase != null
-                ? Uri.parse(
-                  '${_nominatimProxyBase!}${Uri.encodeComponent(rawUrl)}',
-                )
-                : Uri.parse(rawUrl);
+        final rawUrl =
+            'https://api.geoapify.com/v1/geocode/autocomplete?text=${Uri.encodeQueryComponent(query)}&limit=5&apiKey=$_geoapifyKey';
+        uri = Uri.parse(rawUrl);
+        parseGeoapify = true;
+      } else {
+        final rawUrl =
+            'https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&q=${Uri.encodeQueryComponent(query)}&limit=5';
+        uri = Uri.parse(rawUrl);
       }
+      // calling api to get address
       final res = await http.get(
         uri,
         headers: {
-          'User-Agent': 'ecoexchange-app/1.0 (+https://example.com)',
+          'User-Agent': 'ecoexchange-app/1.0',
           'Accept': 'application/json',
         },
       );
       if (res.statusCode == 200) {
+        // Get the response from either of the apis
         List<_PlaceSuggestion> suggs;
         if (parseGeoapify) {
           final Map<String, dynamic> data = jsonDecode(res.body);
-          final List feats = (data['features'] as List? ?? []);
+          final List features = (data['features'] as List? ?? []);
           suggs =
-              feats
-                  .map((f) {
-                    final props = (f['properties'] as Map?) ?? {};
+              features
+                  .map((feature) {
+                    final props = (feature['properties'] as Map?) ?? {};
                     final name =
                         (props['formatted'] ?? props['address_line1'] ?? '')
                             as String;
                     LatLng? pos;
                     try {
-                      final geom = (f as Map)['geometry'] as Map?;
+                      final geom = (feature as Map)['geometry'] as Map?;
                       final coords =
                           (geom?['coordinates'] as List?)?.cast<num>();
                       if (coords != null && coords.length >= 2) {
-                        // GeoJSON order: [lon, lat]
+                        // GeoJSON order: lon, lat
                         pos = LatLng(
                           coords[1].toDouble(),
                           coords[0].toDouble(),
@@ -242,16 +251,16 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                     }
                     return _PlaceSuggestion(displayName: name, latLng: pos);
                   })
-                  .where((s) => s.displayName.isNotEmpty)
+                  .where((suggestion) => suggestion.displayName.isNotEmpty)
                   .toList();
         } else {
           final List data = jsonDecode(res.body) as List;
           suggs =
               data
-                  .map((e) {
-                    final name = (e['display_name'] ?? '') as String;
-                    final lat = double.tryParse(e['lat']?.toString() ?? '');
-                    final lon = double.tryParse(e['lon']?.toString() ?? '');
+                  .map((entry) {
+                    final name = (entry['display_name'] ?? '') as String;
+                    final lat = double.tryParse(entry['lat']?.toString() ?? '');
+                    final lon = double.tryParse(entry['lon']?.toString() ?? '');
                     return _PlaceSuggestion(
                       displayName: name,
                       latLng:
@@ -260,7 +269,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                               : null,
                     );
                   })
-                  .where((s) => s.displayName.isNotEmpty)
+                  .where((suggestion) => suggestion.displayName.isNotEmpty)
                   .toList();
         }
         if (!mounted) return;
@@ -277,17 +286,18 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
     }
   }
 
+  // getting addresses from latitude and longitude
   Future<void> _reverseGeocode(LatLng latlng) async {
     if (!_online) {
       return;
     }
-    if (kIsWeb && _geoapifyKey.isEmpty && _nominatimProxyBase == null) {
+    if (kIsWeb && _geoapifyKey.isEmpty) {
       if (!_webCorsWarned && mounted) {
         _webCorsWarned = true;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text(
-              'Reverse geocoding is unavailable on Web preview due to CORS. Provide GEOAPIFY_KEY or configure a proxy.',
+              'Reverse geocoding is unavailable on Web without GEOAPIFY_KEY.',
             ),
           ),
         );
@@ -305,17 +315,12 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
       } else {
         final rawUrl =
             'https://nominatim.openstreetmap.org/reverse?format=json&lat=${latlng.latitude}&lon=${latlng.longitude}&addressdetails=1';
-        uri =
-            _nominatimProxyBase != null
-                ? Uri.parse(
-                  '${_nominatimProxyBase!}${Uri.encodeComponent(rawUrl)}',
-                )
-                : Uri.parse(rawUrl);
+        uri = Uri.parse(rawUrl);
       }
       final res = await http.get(
         uri,
         headers: {
-          'User-Agent': 'ecoexchange-app/1.0 (+https://example.com)',
+          'User-Agent': 'ecoexchange-app/1.0',
           'Accept': 'application/json',
         },
       );
@@ -360,12 +365,14 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
     }
   }
 
+  // address to latitude and longitude
   Future<LatLng?> _geocodeOne(String text) async {
     if (!_online) return null;
     try {
       Uri uri;
       bool parseGeoapify = false;
-      if (kIsWeb && _geoapifyKey.isNotEmpty) {
+      if (kIsWeb) {
+        if (_geoapifyKey.isEmpty) return null;
         final rawUrl =
             'https://api.geoapify.com/v1/geocode/search?text=${Uri.encodeQueryComponent(text)}&limit=1&apiKey=$_geoapifyKey';
         uri = Uri.parse(rawUrl);
@@ -373,35 +380,27 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
       } else {
         final rawUrl =
             'https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&q=${Uri.encodeQueryComponent(text)}&limit=1';
-        if (kIsWeb && _nominatimProxyBase == null) {
-          return null;
-        }
-        uri =
-            _nominatimProxyBase != null
-                ? Uri.parse(
-                  '${_nominatimProxyBase!}${Uri.encodeComponent(rawUrl)}',
-                )
-                : Uri.parse(rawUrl);
+        uri = Uri.parse(rawUrl);
       }
       final res = await http.get(
         uri,
         headers: {
-          'User-Agent': 'ecoexchange-app/1.0 (+https://example.com)',
+          'User-Agent': 'ecoexchange-app/1.0',
           'Accept': 'application/json',
         },
       );
       if (res.statusCode != 200) return null;
       if (parseGeoapify) {
         final Map<String, dynamic> data = jsonDecode(res.body);
-        final List feats = (data['features'] as List? ?? []);
-        if (feats.isEmpty) return null;
-        final f = feats.first as Map;
-        final geom = f['geometry'] as Map?;
+        final List features = (data['features'] as List? ?? []);
+        if (features.isEmpty) return null;
+        final firstFeature = features.first as Map;
+        final geom = firstFeature['geometry'] as Map?;
         final coords = (geom?['coordinates'] as List?)?.cast<num>();
         if (coords != null && coords.length >= 2) {
           return LatLng(coords[1].toDouble(), coords[0].toDouble());
         }
-        final props = (f['properties'] as Map?) ?? {};
+        final props = (firstFeature['properties'] as Map?) ?? {};
         final lat = (props['lat'] as num?)?.toDouble();
         final lon = (props['lon'] as num?)?.toDouble();
         if (lat != null && lon != null) return LatLng(lat, lon);
@@ -409,9 +408,9 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
       } else {
         final List data = jsonDecode(res.body) as List;
         if (data.isEmpty) return null;
-        final e = data.first as Map;
-        final lat = double.tryParse(e['lat']?.toString() ?? '');
-        final lon = double.tryParse(e['lon']?.toString() ?? '');
+        final first = data.first as Map;
+        final lat = double.tryParse(first['lat']?.toString() ?? '');
+        final lon = double.tryParse(first['lon']?.toString() ?? '');
         if (lat != null && lon != null) return LatLng(lat, lon);
         return null;
       }
@@ -437,8 +436,10 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
       return;
     }
     setState(() => _submitting = true);
+
+    // send to firebase
     try {
-      await _svc.createEvent(
+      await firebaseService.createEvent(
         Event(
           title: _titleCtrl.text.trim(),
           description: _descCtrl.text.trim(),
@@ -486,6 +487,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                     (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
               ),
               const SizedBox(height: 12),
+              // show photo if available
               if ((_imageBase64 ?? '').isNotEmpty) ...[
                 ClipRRect(
                   borderRadius: BorderRadius.circular(12),
@@ -507,7 +509,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                     (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
               ),
               const SizedBox(height: 12),
-              // Map moved here: under Description and above Location
+              // map
               ClipRRect(
                 borderRadius: BorderRadius.circular(12),
                 child: SizedBox(
@@ -518,6 +520,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                         mapController: _mapController,
                         options: MapOptions(
                           initialCenter:
+                          // middle of sg
                               _selectedLatLng ?? const LatLng(1.3521, 103.8198),
                           initialZoom: 11,
                           minZoom: _minZoom,
@@ -549,9 +552,9 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                                   point: _selectedLatLng!,
                                   width: 40,
                                   height: 40,
-                                  child: const Icon(
+                                  child: Icon(
                                     Icons.location_on,
-                                    color: Colors.red,
+                                    color: scheme.primary,
                                     size: 36,
                                   ),
                                 ),
@@ -559,14 +562,18 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                             ),
                         ],
                       ),
+
+                      // zoom options
                       Positioned(
                         right: 8,
                         top: 8,
                         child: Column(
                           children: [
                             Material(
-                              shape: const CircleBorder(),
-                              color: Colors.white,
+                              shape: CircleBorder(
+                                side: BorderSide(color: scheme.outlineVariant),
+                              ),
+                              color: scheme.surfaceContainerHighest,
                               elevation: 2,
                               child: InkWell(
                                 customBorder: const CircleBorder(),
@@ -581,16 +588,22 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                                     next,
                                   );
                                 },
-                                child: const Padding(
+                                child: Padding(
                                   padding: EdgeInsets.all(8.0),
-                                  child: Icon(Icons.add, size: 20),
+                                  child: Icon(
+                                    Icons.add,
+                                    size: 20,
+                                    color: scheme.onSurface,
+                                  ),
                                 ),
                               ),
                             ),
                             const SizedBox(height: 8),
                             Material(
-                              shape: const CircleBorder(),
-                              color: Colors.white,
+                              shape: CircleBorder(
+                                side: BorderSide(color: scheme.outlineVariant),
+                              ),
+                              color: scheme.surfaceContainerHighest,
                               elevation: 2,
                               child: InkWell(
                                 customBorder: const CircleBorder(),
@@ -605,9 +618,13 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                                     next,
                                   );
                                 },
-                                child: const Padding(
+                                child: Padding(
                                   padding: EdgeInsets.all(8.0),
-                                  child: Icon(Icons.remove, size: 20),
+                                  child: Icon(
+                                    Icons.remove,
+                                    size: 20,
+                                    color: scheme.onSurface,
+                                  ),
                                 ),
                               ),
                             ),
@@ -627,6 +644,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                     style: TextStyle(color: scheme.error),
                   ),
                 ),
+              // Show address when entered
               if (_locCtrl.text.trim().isNotEmpty)
                 Text(
                   'Address: ${_locCtrl.text.trim()}',
@@ -639,6 +657,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                 decoration: InputDecoration(
                   labelText: 'Location',
                   suffixIcon:
+                      // show either loading or x icon
                       _searching
                           ? const Padding(
                             padding: EdgeInsets.all(10),
@@ -658,7 +677,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                                     _locCtrl.clear();
                                     _suggestions = [];
                                   });
-                                  // Keep keyboard up to continue typing immediately
+                                  // Keep keyboard up to continue typing
                                   if (!_locFocus.hasFocus) {
                                     _locFocus.requestFocus();
                                   }
@@ -671,6 +690,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                 validator:
                     (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
               ),
+              // show suggestions for search when user inputs search
               if (_suggestions.isNotEmpty)
                 Card(
                   margin: const EdgeInsets.only(top: 8),
@@ -680,26 +700,28 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                       shrinkWrap: true,
                       itemCount: _suggestions.length,
                       separatorBuilder: (_, __) => const Divider(height: 1),
-                      itemBuilder: (context, i) {
-                        final s = _suggestions[i];
+                      itemBuilder: (context, index) {
+                        final suggestion = _suggestions[index];
                         return ListTile(
                           leading: const Icon(Icons.place_outlined),
                           title: Text(
-                            s.displayName,
+                            suggestion.displayName,
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                           ),
                           onTap: () async {
-                            // Fill the field first, then close suggestions and unfocus.
+                            // Fill the field then close suggestions
                             setState(() {
-                              _locCtrl.text = s.displayName;
+                              _locCtrl.text = suggestion.displayName;
                               _suggestions = [];
                             });
                             if (_locFocus.hasFocus) {
                               _locFocus.unfocus();
                             }
-                            LatLng? target = s.latLng;
-                            target ??= await _geocodeOne(s.displayName);
+                            LatLng? target = suggestion.latLng;
+                            target ??= await _geocodeOne(
+                              suggestion.displayName,
+                            );
                             if (target != null) {
                               setState(() => _selectedLatLng = target);
                               _mapController.move(target, 15);
@@ -718,6 +740,8 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                     ),
                   ),
                 ),
+
+                // pick timing 
               const SizedBox(height: 12),
               Row(
                 children: [
@@ -766,6 +790,8 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                     }
                   },
                   icon: const Icon(Icons.add_photo_alternate),
+
+                  // add or edit image
                   label: Text(
                     (_imageBase64 ?? '').isEmpty ? 'Add Image' : 'Change Image',
                   ),

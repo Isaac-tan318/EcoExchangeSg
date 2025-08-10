@@ -59,8 +59,14 @@ class _OrganisationLoginScreenState extends State<OrganisationLoginScreen> {
     var nav = Navigator.of(context);
 
     return Scaffold(
-      body: Center(
-        child: Column(
+      body: SafeArea(
+        child: LayoutBuilder(
+          builder: (context, constraints) => SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              child: Center(
+                child: Column(
           children: [
             SizedBox(height: 60),
             CircleAvatar(radius: 87.5, child: Icon(Icons.business, size: 80)),
@@ -215,10 +221,10 @@ class _OrganisationLoginScreenState extends State<OrganisationLoginScreen> {
                         }
                       },
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white,
+                backgroundColor: scheme.surface,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
-                  side: BorderSide(color: Colors.black), // Border color
+                  side: BorderSide(color: scheme.outline),
                 ),
                 foregroundColor: scheme.onSurface,
               ),
@@ -272,6 +278,10 @@ class _OrganisationLoginScreenState extends State<OrganisationLoginScreen> {
               child: Text("User login"),
             ),
           ],
+                ),
+              ),
+            ),
+          ),
         ),
       ),
     );

@@ -89,81 +89,88 @@ class _EditInformationScreenState extends State<EditInformationScreen> {
         elevation: 0,
       ),
       backgroundColor: scheme.surface,
-      body:
-          isLoading
-              ? Center(child: CircularProgressIndicator())
-              : Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Form(
-                  key: form,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      const SizedBox(height: 24),
-                      Text(
-                        'Email',
-                        style: TextStyle(
-                          fontSize: textTheme.titleLarge?.fontSize,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      Field(
-                        color: scheme.surfaceContainer,
-                        child: TextFormField(
-                          controller: _emailController,
-                          keyboardType: TextInputType.emailAddress,
-                          decoration: InputDecoration.collapsed(
-                            hintText: "Email",
+      body: isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : SafeArea(
+              child: LayoutBuilder(
+                builder: (context, constraints) => SingleChildScrollView(
+                  padding: const EdgeInsets.all(16.0),
+                  child: ConstrainedBox(
+                    constraints:
+                        BoxConstraints(minHeight: constraints.maxHeight),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        const SizedBox(height: 24),
+                        Text(
+                          'Email',
+                          style: TextStyle(
+                            fontSize: textTheme.titleLarge?.fontSize,
                           ),
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Email is required';
-                            }
-                            final emailRegex = RegExp(
-                              r"^[^@\s]+@[^@\s]+\.[^@\s]+",
-                            );
-                            if (!emailRegex.hasMatch(value)) {
-                              return 'Enter a valid email address';
-                            }
-                            return null;
-                          },
-                          onSaved: (value) {
-                            newEmail = value!;
-                          },
                         ),
-                      ),
-                      const SizedBox(height: 32),
-                      ElevatedButton(
-                        onPressed: isSaving ? null : saveChanges,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: scheme.primaryContainer,
-                          foregroundColor: scheme.onPrimaryContainer,
-                          padding: EdgeInsets.symmetric(vertical: 16),
+                        const SizedBox(height: 12),
+                        Form(
+                          key: form,
+                          child: Field(
+                            color: scheme.surfaceContainer,
+                            child: TextFormField(
+                              controller: _emailController,
+                              keyboardType: TextInputType.emailAddress,
+                              decoration: const InputDecoration.collapsed(
+                                hintText: "Email",
+                              ),
+                              validator: (value) {
+                                if (value == null || value.isEmpty) {
+                                  return 'Email is required';
+                                }
+                                final emailRegex = RegExp(
+                                  r"^[^@\s]+@[^@\s]+\.[^@\s]+",
+                                );
+                                if (!emailRegex.hasMatch(value)) {
+                                  return 'Enter a valid email address';
+                                }
+                                return null;
+                              },
+                              onSaved: (value) {
+                                newEmail = value!;
+                              },
+                            ),
+                          ),
                         ),
-                        child:
-                            isSaving
-                                ? SizedBox(
+                        const SizedBox(height: 32),
+                        ElevatedButton(
+                          onPressed: isSaving ? null : saveChanges,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: scheme.primaryContainer,
+                            foregroundColor: scheme.onPrimaryContainer,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                          ),
+                          child: isSaving
+                              ? SizedBox(
                                   height: 20,
                                   width: 20,
                                   child: CircularProgressIndicator(
                                     strokeWidth: 2,
-                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                    valueColor:
+                                        AlwaysStoppedAnimation<Color>(
                                       scheme.onPrimaryContainer,
                                     ),
                                   ),
                                 )
-                                : Text(
+                              : Text(
                                   'Save Changes',
                                   style: TextStyle(
                                     fontSize: textTheme.bodyLarge?.fontSize,
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),
-                      ),
-                    ],
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
+            ),
     );
   }
 }

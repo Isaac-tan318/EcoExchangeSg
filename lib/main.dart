@@ -65,11 +65,17 @@ class MyApp extends StatelessWidget {
           darkTheme: themeService.darkTheme(context),
           themeMode: themeService.mode,
           builder: (context, child) {
-            return Stack(
+            // Apply global text scale factor from ThemeService
+            final base = MediaQuery.of(context);
+            final themedScale = themeService.textScale;
+            return MediaQuery(
+              data: base.copyWith(textScaler: TextScaler.linear(themedScale)),
+              child: Stack(
               children: [
                 if (child != null) child,
                 const OfflineBannerOverlay(),
               ],
+              ),
             );
           },
           home: const AuthGate(),

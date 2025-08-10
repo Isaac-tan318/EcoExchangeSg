@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 class NETSFail extends StatelessWidget {
-
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -16,10 +15,14 @@ class NETSFail extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 10),
-        const Text(
+        Text(
           'Transaction Failed!',
           textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Theme.of(context).colorScheme.onSurface,
+          ),
         ),
         const SizedBox(height: 10),
       ],

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_application_1/screens/auth/login_screen.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_application_1/screens/home_page.dart';
 import 'package:flutter_application_1/services/firebase_service.dart';
 import 'package:flutter_application_1/widgets/textfield.dart';
@@ -31,8 +31,13 @@ class PhoneNumberLoginScreen extends StatelessWidget {
         ),
       ),
       body: SafeArea(
-        child: Center(
-          child: Column(
+        child: LayoutBuilder(
+          builder: (context, constraints) => SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              child: Center(
+                child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
@@ -52,11 +57,12 @@ class PhoneNumberLoginScreen extends StatelessWidget {
                       hintText: "Phone Number",
                     ),
                     validator: (value) {
-                      if (value != null && value.isNotEmpty) {
-                        final phoneRegex = RegExp(r'^\+?[0-9]{7,15}$');
-                        if (!phoneRegex.hasMatch(value)) {
-                          return 'Enter a valid phone number';
-                        }
+                      if (value == null || value.isEmpty) {
+                        return 'Phone number is required';
+                      }
+                      final phoneRegex = RegExp(r'^\+?[0-9]{7,15}$');
+                      if (!phoneRegex.hasMatch(value)) {
+                        return 'Enter a valid phone number';
                       }
                       return null;
                     },
@@ -77,19 +83,42 @@ class PhoneNumberLoginScreen extends StatelessWidget {
                       await showDialog(
                         context: context,
                         builder: (context) {
-                          var otpController = TextEditingController();
+                          final formKey = GlobalKey<FormState>();
+                          final otpController = TextEditingController();
                           return AlertDialog(
                             title: Text('Enter OTP'),
-                            content: TextField(
-                              controller: otpController,
-                              keyboardType: TextInputType.number,
-                              decoration: InputDecoration(hintText: 'OTP'),
+                            content: Form(
+                              key: formKey,
+                              child: TextFormField(
+                                controller: otpController,
+                                keyboardType: TextInputType.number,
+                                decoration: const InputDecoration(
+                                  hintText: 'OTP',
+                                  counterText: '',
+                                ),
+                                maxLength: 6,
+                                inputFormatters: [
+                                  FilteringTextInputFormatter.digitsOnly,
+                                ],
+                                validator: (value) {
+                                  if (value == null || value.isEmpty) {
+                                    return 'OTP is required';
+                                  }
+                                  // Accept 4-8 numeric digits
+                                  if (!RegExp(r'^\\d{4,8}$').hasMatch(value)) {
+                                    return 'Enter a valid numeric OTP';
+                                  }
+                                  return null;
+                                },
+                              ),
                             ),
                             actions: [
                               TextButton(
                                 onPressed: () {
-                                  otp = otpController.text;
-                                  Navigator.of(context).pop();
+                                  if (formKey.currentState!.validate()) {
+                                    otp = otpController.text;
+                                    Navigator.of(context).pop();
+                                  }
                                 },
                                 child: Text('Submit'),
                               ),
@@ -120,14 +149,17 @@ class PhoneNumberLoginScreen extends StatelessWidget {
                     }
                   }
                 },
-                child: Text("Login"),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: scheme.primaryContainer,
                   foregroundColor: scheme.onPrimaryContainer,
                   padding: EdgeInsets.symmetric(horizontal: 24, vertical: 10),
                 ),
+                child: Text("Login"),
               ),
             ],
+                ),
+              ),
+            ),
           ),
         ),
       ),

@@ -15,7 +15,7 @@ class _OfflineBannerOverlayState extends State<OfflineBannerOverlay> {
   @override
   void initState() {
     super.initState();
-    // Listen for connectivity changes
+    // Listen for connectivity for offline mode handling
     GetIt.instance<ConnectivityService>().isOnline$.listen((isOnline) {
       if (!mounted) return;
       setState(() => _online = isOnline);
@@ -26,13 +26,16 @@ class _OfflineBannerOverlayState extends State<OfflineBannerOverlay> {
   Widget build(BuildContext context) {
     if (_online) return const SizedBox.shrink();
     final scheme = Theme.of(context).colorScheme;
-  // If there's a BottomNavigationBar in the nearest Scaffold, offset the banner
-  // so it sits above it (not overlapping or inside it).
-  final scaffold = context.findAncestorWidgetOfExactType<Scaffold>();
-  final hasBottomNav = scaffold?.bottomNavigationBar != null;
-  final bottomMargin = hasBottomNav
-    ? (8.0 + kBottomNavigationBarHeight + 8.0) // base 8 + nav height + extra spacing
-    : 8.0;
+    // If there's a BottomNavigationBar in the nearest Scaffold, offset the banner
+    // so it sits above it (not overlapping or inside it).
+    final scaffold = context.findAncestorWidgetOfExactType<Scaffold>();
+    final hasBottomNav = scaffold?.bottomNavigationBar != null;
+    final bottomMargin =
+        hasBottomNav
+            ? (8.0 +
+                kBottomNavigationBarHeight +
+                8.0) // base 8 + nav height + extra spacing
+            : 8.0;
     return SafeArea(
       child: Align(
         alignment: Alignment.bottomCenter,
@@ -40,14 +43,14 @@ class _OfflineBannerOverlayState extends State<OfflineBannerOverlay> {
           constraints: const BoxConstraints(maxWidth: double.infinity),
           child: Container(
             width: double.infinity,
-      margin: EdgeInsets.fromLTRB(8, 8, 8, bottomMargin),
+            margin: EdgeInsets.fromLTRB(8, 8, 8, bottomMargin),
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             decoration: BoxDecoration(
               color: scheme.errorContainer,
               borderRadius: BorderRadius.circular(12),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
+                  color: Theme.of(context).colorScheme.shadow.withOpacity(0.1),
                   blurRadius: 6,
                   offset: const Offset(0, 2),
                 ),

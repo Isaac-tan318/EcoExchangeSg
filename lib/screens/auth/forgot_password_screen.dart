@@ -20,8 +20,14 @@ class ForgotPasswordScreen extends StatelessWidget {
     FirebaseService firebaseService = GetIt.instance<FirebaseService>();
 
     return Scaffold(
-      body: Center(
-        child: Column(
+      body: SafeArea(
+        child: LayoutBuilder(
+          builder: (context, constraints) => SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              child: Center(
+                child: Column(
           children: [
             SizedBox(height: 60),
             CircleAvatar(
@@ -126,6 +132,10 @@ class ForgotPasswordScreen extends StatelessWidget {
               ),
             ),
           ],
+                ),
+              ),
+            ),
+          ),
         ),
       ),
     );

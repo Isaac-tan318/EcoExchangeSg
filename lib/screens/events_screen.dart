@@ -3,6 +3,7 @@ import 'package:flutter_application_1/models/event.dart';
 import 'package:flutter_application_1/screens/create_event_screen.dart';
 import 'package:flutter_application_1/screens/edit_event_screen.dart';
 import 'package:flutter_application_1/services/firebase_service.dart';
+import 'package:flutter_application_1/screens/event_details_screen.dart';
 import 'package:get_it/get_it.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:flutter_application_1/widgets/event_widget.dart';
@@ -124,9 +125,17 @@ class _EventsScreenState extends State<EventsScreen>
                     );
                   }
                   final e = events[index - 1];
-                  return EventWidget(
-                    event: e,
-                    trailing:
+                  return InkWell(
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => EventDetailsScreen(eventId: e.id!),
+                        ),
+                      );
+                    },
+                    child: EventWidget(
+                      event: e,
+                      trailing:
                         _isOrganiser
                             ? PopupMenuButton<String>(
                               onSelected: (value) async {
@@ -166,6 +175,7 @@ class _EventsScreenState extends State<EventsScreen>
                                   ],
                             )
                             : null,
+                    ),
                   );
                 },
               ),
@@ -213,9 +223,17 @@ class _EventsScreenState extends State<EventsScreen>
                               itemCount: byDay[selectedDayKey]!.length,
                               itemBuilder: (context, idx) {
                                 final e = byDay[selectedDayKey]![idx];
-                                return EventWidget(
-                                  event: e,
-                                  trailing:
+                                return InkWell(
+                                  onTap: () {
+                                    Navigator.of(context).push(
+                                      MaterialPageRoute(
+                                        builder: (_) => EventDetailsScreen(eventId: e.id!),
+                                      ),
+                                    );
+                                  },
+                                  child: EventWidget(
+                                    event: e,
+                                    trailing:
                                       _isOrganiser
                                           ? PopupMenuButton<String>(
                                             onSelected: (value) async {
@@ -259,6 +277,7 @@ class _EventsScreenState extends State<EventsScreen>
                                                 ],
                                           )
                                           : null,
+                                  ),
                                 );
                               },
                             ),

@@ -15,7 +15,8 @@ class NotificationService {
     if (kIsWeb) return; // local notifications not supported on Flutter web
     if (_initialized) return;
 
-    const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
+  // Use the app launcher icon for notifications by default
+  const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
     const iosInit = DarwinInitializationSettings();
     const initSettings = InitializationSettings(
       android: androidInit,
@@ -103,6 +104,8 @@ class NotificationService {
       channelDescription: 'Notifications for new events',
       importance: Importance.high,
       priority: Priority.high,
+      icon: '@mipmap/ic_launcher',
+  largeIcon: DrawableResourceAndroidBitmap('ic_launcher'),
     );
     const iosDetails = DarwinNotificationDetails();
     const details = NotificationDetails(

@@ -18,6 +18,7 @@ import 'package:flutter_application_1/screens/create_event_screen.dart';
 import 'package:flutter_application_1/screens/edit_event_screen.dart';
 import 'package:flutter_application_1/models/post.dart';
 import 'package:flutter_application_1/screens/post_details_screen.dart';
+import 'package:flutter_application_1/screens/event_details_screen.dart';
 import 'package:flutter_application_1/services/firebase_service.dart';
 import 'package:flutter_application_1/services/notification_service.dart';
 import 'package:flutter_application_1/services/connectivity_service.dart';
@@ -101,6 +102,12 @@ class MyApp extends StatelessWidget {
               return MaterialPageRoute(
                 builder:
                     (_) => PostDetailsScreen(postId: args['postId'] as String),
+              );
+            }
+            if (settings.name == EventDetailsScreen.routeName) {
+              final args = settings.arguments as Map<String, dynamic>;
+              return MaterialPageRoute(
+                builder: (_) => EventDetailsScreen(eventId: args['eventId'] as String),
               );
             }
             return null;

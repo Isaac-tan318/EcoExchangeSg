@@ -598,6 +598,14 @@ class FirebaseService {
     );
   }
 
+  Future<EventModel.Event?> getEvent(String id) async {
+    final snap = await _eventsCollection.doc(id).get();
+    if (!snap.exists) return null;
+    final data = snap.data();
+    if (data == null) return null;
+    return _eventFromMap({...data, 'id': snap.id});
+  }
+
   // Select with aggregation:
   // Example helper using Firestore count() aggregation for posts.
   Future<int> countPosts({

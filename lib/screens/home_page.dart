@@ -17,6 +17,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   var selectedIndex = 0;
 
+  // tabs for bottom navigation or rail
   static List<Widget> screens = <Widget>[
     PostsScreen(),
     EventsScreen(),
@@ -48,6 +49,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
       ),
+      // Events screen app bar
       AppBar(
         backgroundColor: scheme.primary,
         foregroundColor: scheme.onPrimary,
@@ -68,11 +70,12 @@ class _HomeScreenState extends State<HomeScreen> {
       null,
     ];
 
-    final media = MediaQuery.of(context);
-    final useRail =
-        media.orientation == Orientation.landscape || media.size.width >= 600;
+  // switch between navigation rail and bottom bar for landscape screens
+  final media = MediaQuery.of(context);
+  final useRail = media.orientation == Orientation.landscape || media.size.width >= 600;
 
     if (useRail) {
+      // landscape layout: show navigation rail on the left
       return Scaffold(
         appBar: appBars[selectedIndex],
         body: Row(
@@ -111,6 +114,7 @@ class _HomeScreenState extends State<HomeScreen> {
       );
     }
 
+    // portrait, standard bottom navigation bar
     return Scaffold(
       appBar: appBars[selectedIndex],
       body: screens[selectedIndex],

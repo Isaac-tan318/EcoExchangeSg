@@ -335,7 +335,7 @@ class _EventsScreenState extends State<EventsScreen>
                             });
                           },
                           onFormatChanged: (format) {
-                            // switch between month/2 weeks/week views
+                            // switch between month, 2 weeks and week views
                             setState(() => _calFormat = format);
                           },
                           onPageChanged: (focusedDay) {
@@ -502,7 +502,7 @@ class _EventsScreenState extends State<EventsScreen>
                               });
                             },
                             onFormatChanged: (format) {
-                              // switch between month/2 weeks/week views
+                              // switch between month, 2 weeks, week views
                               setState(() => _calFormat = format);
                             },
                             onPageChanged: (focusedDay) {
@@ -605,7 +605,7 @@ class _EventsScreenState extends State<EventsScreen>
           },
         ),
       ),
-      // show create event button for organisers when online
+      // show create event button for organisers 
       floatingActionButton:
           (!_loadingRole && _isOrganiser)
               ? FloatingActionButton(

@@ -7,7 +7,7 @@ class ThemeService extends ChangeNotifier {
   static const _keyTextScale = 'textScale';
 
   ThemeMode _mode = ThemeMode.light;
-  Color _seed = const Color(0xFF3D8259); // fallback green
+  Color _seed = const Color(0xFF3D8259); // default app green
   double _textScale = 1.0; // 0.9, 1.0, 1.15, 1.3
 
   ThemeMode get mode => _mode;
@@ -19,6 +19,7 @@ class ThemeService extends ChangeNotifier {
     final modeIndex = prefs.getInt(_keyMode);
     final seedVal = prefs.getInt(_keySeed);
     final textScaleVal = prefs.getDouble(_keyTextScale);
+    // load theme mode, seed color and text scale from prefs
     if (modeIndex != null &&
         modeIndex >= 0 &&
         modeIndex < ThemeMode.values.length) {
@@ -29,9 +30,11 @@ class ThemeService extends ChangeNotifier {
       }
       _mode = loaded;
     }
+    // set theme color
     if (seedVal != null) {
       _seed = Color(seedVal);
     }
+    // set text scale
     if (textScaleVal != null && textScaleVal > 0) {
       _textScale = textScaleVal;
     }
@@ -91,7 +94,7 @@ class ThemeService extends ChangeNotifier {
     );
   }
 
-  // Reset theme preferences to app defaults and persist them
+  // Reset theme preferences to app defaults
   Future<void> resetToDefaults() async {
     _mode = ThemeMode.light;
     _seed = const Color(0xFF3D8259); // default green

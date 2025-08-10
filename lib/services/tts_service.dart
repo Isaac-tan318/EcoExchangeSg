@@ -4,7 +4,7 @@ class TtsService {
   final FlutterTts _tts = FlutterTts();
 
   TtsService() {
-    // Configure sensible defaults
+    // tts settings
     _tts.setSpeechRate(0.5);
     _tts.setVolume(1.0);
     _tts.setPitch(1.0);

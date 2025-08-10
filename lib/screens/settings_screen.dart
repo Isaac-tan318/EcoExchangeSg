@@ -236,15 +236,25 @@ class SettingsScreen extends StatelessWidget {
                 onPressed: () {
                   showDialog(
                     context: context,
-                    builder: (context) {
+                    builder: (dialogCtx) {
                       bool obscure = true;
                       final formKey = GlobalKey<FormState>();
                       final newPassController = TextEditingController();
                       final confirmPassController = TextEditingController();
                       return StatefulBuilder(
-                        builder: (context, setState) => AlertDialog(
-                          title: const Text('Change Password'),
-                          content: Form(
+                        builder: (context, setState) {
+                          final s = Theme.of(context).colorScheme;
+                          final t = Theme.of(context).textTheme;
+                          return AlertDialog(
+                            backgroundColor: s.surfaceContainerHigh,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            title: Text(
+                              'Change Password',
+                              style: t.titleLarge?.copyWith(color: s.onSurface),
+                            ),
+                            content: Form(
                             key: formKey,
                             child: Column(
                               mainAxisSize: MainAxisSize.min,
@@ -289,9 +299,9 @@ class SettingsScreen extends StatelessWidget {
                               ],
                             ),
                           ),
-                          actions: [
-                            TextButton(
-                              onPressed: () async {
+                            actions: [
+                              FilledButton(
+                                onPressed: () async {
                                 if (!formKey.currentState!.validate()) return;
                                 try {
                                   await firebaseService.changePassword(newPassController.text);
@@ -305,11 +315,12 @@ class SettingsScreen extends StatelessWidget {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(content: Text('Password changed successfully.')),
                                 );
-                              },
-                              child: const Text('Submit'),
-                            ),
-                          ],
-                        ),
+                                },
+                                child: const Text('Submit'),
+                              ),
+                            ],
+                          );
+                        },
                       );
                     },
                   );
@@ -324,29 +335,43 @@ class SettingsScreen extends StatelessWidget {
                 onPressed: () async {
                   showDialog<bool>(
                     context: context,
-                    builder: (context) => AlertDialog(
-                      title: const Text('Confirm Logout'),
-                      content: const Text('Are you sure you want to log out?'),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.of(context).pop(false),
-                          child: const Text('Cancel'),
+                    builder: (ctx) {
+                      final s = Theme.of(ctx).colorScheme;
+                      final t = Theme.of(ctx).textTheme;
+                      return AlertDialog(
+                        backgroundColor: s.surfaceContainerHigh,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
                         ),
-                        TextButton(
-                          onPressed: () async {
-                            final themeSvc = GetIt.instance<ThemeService>();
-                            await themeSvc.resetToDefaults();
-                            await firebaseService.logOut();
-                            if (!context.mounted) return;
-                            Navigator.of(context).pushReplacementNamed(LoginScreen.routeName);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Logged out successfully.')),
-                            );
-                          },
-                          child: const Text('Logout'),
+                        title: Text(
+                          'Confirm Logout',
+                          style: t.titleLarge?.copyWith(color: s.onSurface),
                         ),
-                      ],
-                    ),
+                        content: Text(
+                          'Are you sure you want to log out?',
+                          style: t.bodyMedium?.copyWith(color: s.onSurfaceVariant),
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.of(ctx).pop(false),
+                            child: const Text('Cancel'),
+                          ),
+                          FilledButton(
+                            onPressed: () async {
+                              final themeSvc = GetIt.instance<ThemeService>();
+                              await themeSvc.resetToDefaults();
+                              await firebaseService.logOut();
+                              if (!ctx.mounted) return;
+                              Navigator.of(ctx).pushReplacementNamed(LoginScreen.routeName);
+                              ScaffoldMessenger.of(ctx).showSnackBar(
+                                const SnackBar(content: Text('Logged out successfully.')),
+                              );
+                            },
+                            child: const Text('Logout'),
+                          ),
+                        ],
+                      );
+                    },
                   );
                 },
                 textTheme: textTheme,
@@ -359,35 +384,53 @@ class SettingsScreen extends StatelessWidget {
                 onPressed: () async {
                   showDialog<bool>(
                     context: context,
-                    builder: (context) => AlertDialog(
-                      title: const Text('Confirm Account Deletion'),
-                      content: const Text('Are you sure you want to delete your account? This action cannot be undone.'),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.of(context).pop(false),
-                          child: const Text('Cancel'),
+                    builder: (ctx) {
+                      final s = Theme.of(ctx).colorScheme;
+                      final t = Theme.of(ctx).textTheme;
+                      return AlertDialog(
+                        backgroundColor: s.surfaceContainerHigh,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
                         ),
-                        TextButton(
-                          onPressed: () async {
-                            try {
-                              await firebaseService.deleteAccount();
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Account deleted successfully.')),
-                              );
-                            } on Exception catch (e) {
-                              Navigator.of(context).pop();
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('Error deleting account: $e')),
-                              );
-                              return;
-                            }
-                            if (!context.mounted) return;
-                            Navigator.of(context).pushReplacementNamed(LoginScreen.routeName);
-                          },
-                          child: const Text('Delete Account'),
+                        title: Text(
+                          'Confirm Account Deletion',
+                          style: t.titleLarge?.copyWith(color: s.onSurface),
                         ),
-                      ],
-                    ),
+                        content: Text(
+                          'Are you sure you want to delete your account? This action cannot be undone.',
+                          style: t.bodyMedium?.copyWith(color: s.onSurfaceVariant),
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.of(ctx).pop(false),
+                            child: const Text('Cancel'),
+                          ),
+                          FilledButton(
+                            onPressed: () async {
+                              try {
+                                await firebaseService.deleteAccount();
+                                ScaffoldMessenger.of(ctx).showSnackBar(
+                                  const SnackBar(content: Text('Account deleted successfully.')),
+                                );
+                              } on Exception catch (e) {
+                                Navigator.of(ctx).pop();
+                                ScaffoldMessenger.of(ctx).showSnackBar(
+                                  SnackBar(content: Text('Error deleting account: $e')),
+                                );
+                                return;
+                              }
+                              if (!ctx.mounted) return;
+                              Navigator.of(ctx).pushReplacementNamed(LoginScreen.routeName);
+                            },
+                            style: FilledButton.styleFrom(
+                              backgroundColor: s.error,
+                              foregroundColor: s.onError,
+                            ),
+                            child: const Text('Delete Account'),
+                          ),
+                        ],
+                      );
+                    },
                   );
                 },
                 textTheme: textTheme,

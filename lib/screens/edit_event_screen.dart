@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:convert';
 import 'package:flutter_application_1/models/event.dart';
 import 'package:flutter_application_1/services/firebase_service.dart';
 import 'package:get_it/get_it.dart';
@@ -25,6 +26,7 @@ class _EditEventScreenState extends State<EditEventScreen> {
   bool _saving = false;
   bool _online = true;
   late Event _event;
+  String? _imageBase64;
 
   String _fmt(DateTime dt) => DateFormats.dMonthYHm(dt.toLocal());
 
@@ -44,6 +46,7 @@ class _EditEventScreenState extends State<EditEventScreen> {
       _locCtrl.text = _event.location ?? '';
       _start = _event.startDateTime;
       _end = _event.endDateTime;
+  _imageBase64 = _event.imageBase64;
     }
   }
 
@@ -119,85 +122,161 @@ class _EditEventScreenState extends State<EditEventScreen> {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final isLandscape =
+        MediaQuery.of(context).orientation == Orientation.landscape;
     return Scaffold(
       appBar: AppBar(title: const Text('Edit Event')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Form(
           key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // fields
-              TextFormField(
-                controller: _titleCtrl,
-                decoration: const InputDecoration(labelText: 'Title'),
-                validator:
-                    (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _descCtrl,
-                maxLines: 4,
-                decoration: const InputDecoration(labelText: 'Description'),
-                validator:
-                    (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
-              ),
-              const SizedBox(height: 12),
-              // location
-              TextFormField(
-                controller: _locCtrl,
-                decoration: const InputDecoration(labelText: 'Location'),
-                validator:
-                    (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
-              ),
-              const SizedBox(height: 12),
-              // date and time selectors
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: _pickStart,
-                      child: Text(
-                        _start == null
-                            ? 'Pick start'
-                            : 'Start: ${_fmt(_start!)}',
+          child: isLandscape
+              ? Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (_imageBase64 != null && _imageBase64!.isNotEmpty)
+                      Expanded(
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: AspectRatio(
+                            aspectRatio: 1,
+                            child: Image.memory(
+                              const Base64Decoder().convert(_imageBase64!),
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                        ),
+                      ),
+                    if (_imageBase64 != null && _imageBase64!.isNotEmpty)
+                      const SizedBox(width: 16),
+                    Expanded(
+                      flex: 2,
+                      child: _EventFormFields(
+                        titleCtrl: _titleCtrl,
+                        descCtrl: _descCtrl,
+                        locCtrl: _locCtrl,
+                        start: _start,
+                        end: _end,
+                        onPickStart: _pickStart,
+                        onPickEnd: _pickEnd,
+                        onSave: _save,
+                        saving: _saving,
+                        online: _online,
+                        scheme: scheme,
+                        fmt: _fmt,
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: _pickEnd,
-                      child: Text(
-                        _end == null ? 'Pick end' : 'End: ${_fmt(_end!)}',
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              // save button
-              ElevatedButton.icon(
-                onPressed: _saving || !_online ? null : _save,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: scheme.primary,
-                  foregroundColor: scheme.onPrimary,
+                  ],
+                )
+              : _EventFormFields(
+                  titleCtrl: _titleCtrl,
+                  descCtrl: _descCtrl,
+                  locCtrl: _locCtrl,
+                  start: _start,
+                  end: _end,
+                  onPickStart: _pickStart,
+                  onPickEnd: _pickEnd,
+                  onSave: _save,
+                  saving: _saving,
+                  online: _online,
+                  scheme: scheme,
+                  fmt: _fmt,
                 ),
-                icon:
-                    _saving
-                        ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                        : const Icon(Icons.save),
-                label: const Text('Save'),
-              ),
-            ],
-          ),
         ),
       ),
+    );
+  }
+}
+
+class _EventFormFields extends StatelessWidget {
+  final TextEditingController titleCtrl;
+  final TextEditingController descCtrl;
+  final TextEditingController locCtrl;
+  final DateTime? start;
+  final DateTime? end;
+  final VoidCallback onPickStart;
+  final VoidCallback onPickEnd;
+  final VoidCallback onSave;
+  final bool saving;
+  final bool online;
+  final ColorScheme scheme;
+  final String Function(DateTime) fmt;
+
+  const _EventFormFields({
+    required this.titleCtrl,
+    required this.descCtrl,
+    required this.locCtrl,
+    required this.start,
+    required this.end,
+    required this.onPickStart,
+    required this.onPickEnd,
+    required this.onSave,
+    required this.saving,
+    required this.online,
+    required this.scheme,
+    required this.fmt,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        TextFormField(
+          controller: titleCtrl,
+          decoration: const InputDecoration(labelText: 'Title'),
+          validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
+        ),
+        const SizedBox(height: 12),
+        TextFormField(
+          controller: descCtrl,
+          maxLines: 4,
+          decoration: const InputDecoration(labelText: 'Description'),
+          validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
+        ),
+        const SizedBox(height: 12),
+        TextFormField(
+          controller: locCtrl,
+          decoration: const InputDecoration(labelText: 'Location'),
+          validator: (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton(
+                onPressed: onPickStart,
+                child: Text(
+                  start == null ? 'Pick start' : 'Start: ${fmt(start!)}',
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: OutlinedButton(
+                onPressed: onPickEnd,
+                child: Text(end == null ? 'Pick end' : 'End: ${fmt(end!)}'),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 20),
+        ElevatedButton.icon(
+          onPressed: saving || !online ? null : onSave,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: scheme.primary,
+            foregroundColor: scheme.onPrimary,
+          ),
+          icon: saving
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Icon(Icons.save),
+          label: const Text('Save'),
+        ),
+      ],
     );
   }
 }

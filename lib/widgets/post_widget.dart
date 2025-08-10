@@ -197,31 +197,42 @@ class _UserPostWidgetState extends State<UserPostWidget> {
                       onPressed: () async {
                         final confirm = await showDialog<bool>(
                           context: context,
-                          builder:
-                              (ctx) => AlertDialog(
-                                title: const Text('Delete Post'),
-                                content: const Text(
-                                  'Are you sure you want to delete this post?',
-                                ),
-                                actions: [
-                                  TextButton(
-                                    onPressed:
-                                        () => Navigator.of(ctx).pop(false),
-                                    child: const Text('Cancel'),
-                                  ),
-                                  TextButton(
-                                    onPressed:
-                                        () => Navigator.of(ctx).pop(true),
-                                    style: TextButton.styleFrom(
-                                      foregroundColor:
-                                          Theme.of(ctx).colorScheme.onError,
-                                      backgroundColor:
-                                          Theme.of(ctx).colorScheme.error,
-                                    ),
-                                    child: const Text('Delete'),
-                                  ),
-                                ],
+                          builder: (ctx) {
+                            final scheme = Theme.of(ctx).colorScheme;
+                            final textTheme = Theme.of(ctx).textTheme;
+                            return AlertDialog(
+                              backgroundColor: scheme.surfaceContainerHigh,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
                               ),
+                              title: Text(
+                                'Delete Post',
+                                style: textTheme.titleLarge?.copyWith(
+                                  color: scheme.onSurface,
+                                ),
+                              ),
+                              content: Text(
+                                'Are you sure you want to delete this post?',
+                                style: textTheme.bodyMedium?.copyWith(
+                                  color: scheme.onSurfaceVariant,
+                                ),
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.of(ctx).pop(false),
+                                  child: const Text('Cancel'),
+                                ),
+                                FilledButton(
+                                  onPressed: () => Navigator.of(ctx).pop(true),
+                                  style: FilledButton.styleFrom(
+                                    backgroundColor: scheme.error,
+                                    foregroundColor: scheme.onError,
+                                  ),
+                                  child: const Text('Delete'),
+                                ),
+                              ],
+                            );
+                          },
                         );
                         if (confirm != true) return;
                         if (widget.post.id == null) return;

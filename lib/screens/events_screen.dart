@@ -44,6 +44,7 @@ class _EventsScreenState extends State<EventsScreen>
   Future<void> _initRole() async {
     final isOrg = await firebaseService.isCurrentUserOrganiser();
     if (!mounted) return;
+    // to show create event button to organisations
     setState(() {
       _isOrganiser = isOrg;
       _loadingRole = false;
@@ -66,6 +67,7 @@ class _EventsScreenState extends State<EventsScreen>
             labelColor: scheme.primary,
             unselectedLabelColor: scheme.onSurfaceVariant,
             indicatorColor: scheme.primary,
+            // divider for events and calendar view
             tabs: const [Tab(text: 'List'), Tab(text: 'Calendar')],
           ),
         ),
@@ -74,7 +76,7 @@ class _EventsScreenState extends State<EventsScreen>
         padding: const EdgeInsets.symmetric(horizontal: 8.0),
         child: StreamBuilder<List<Event>>(
           stream: _eventsStream,
-          initialData: const [],
+          initialData: [],
           builder: (context, snapshot) {
             if (snapshot.hasError) {
               return Center(child: Text('Error: ${snapshot.error}'));
@@ -84,7 +86,8 @@ class _EventsScreenState extends State<EventsScreen>
                 events.isEmpty) {
               return const Center(child: CircularProgressIndicator());
             }
-            // Group events by day using startDateTime date
+            // group events by day using startDateTime date
+            // used for calendar
             final Map<DateTime, List<Event>> byDay = {};
             for (final event in events) {
               final dt = event.startDateTime!;
@@ -110,7 +113,7 @@ class _EventsScreenState extends State<EventsScreen>
             return TabBarView(
               controller: _tabController,
               children: [
-                // List tab: portrait uses single column list; landscape uses 2-column rows
+                // Portrait uses single column list, landscape uses 2-column rows
                 Builder(
                   builder: (context) {
                     Widget buildEventTile(Event event) {
@@ -123,6 +126,7 @@ class _EventsScreenState extends State<EventsScreen>
                             ),
                           );
                         },
+
                         child: EventWidget(
                           event: event,
                           trailing:

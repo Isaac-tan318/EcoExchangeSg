@@ -168,13 +168,26 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
         final currentUid = svc.getCurrentUser()?.uid;
         final canModify = _isOrganiser && (event.authorId == currentUid);
 
-        return Scaffold(
-          appBar: appBar,
-          body: SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+        final isLandscape =
+            MediaQuery.of(context).orientation == Orientation.landscape;
+
+        Widget imageWidget = const SizedBox.shrink();
+        if ((event.imageBase64 ?? '').isNotEmpty) {
+          imageWidget = ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: AspectRatio(
+              aspectRatio: 1,
+              child: Image.memory(
+                const Base64Decoder().convert(event.imageBase64!),
+                fit: BoxFit.cover,
+              ),
+            ),
+          );
+        }
+
+        Widget detailsColumn = Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
                 Align(
                   alignment: Alignment.centerRight,
                   child: FilledButton.icon(
@@ -184,46 +197,81 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                         showDragHandle: true,
                         isScrollControlled: true,
                         builder: (ctx) {
-                          return Padding(
-                            padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
+                          final scheme = Theme.of(ctx).colorScheme;
+                          final textTheme = Theme.of(ctx).textTheme;
+                          final isLandscape =
+                              MediaQuery.of(ctx).orientation ==
+                                  Orientation.landscape;
+                          final instructions = Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Send an award', style: textTheme.titleLarge),
+                              const SizedBox(height: 8),
+                              Text(
+                                'Scan the NETS QR to tip the organiser. Once paid, tap Register to confirm.',
+                                style: textTheme.bodyMedium?.copyWith(
+                                  color: scheme.onSurfaceVariant,
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              NETSQR((BuildContext c) async {
+                                try {
+                                  await GetIt.instance<FirebaseService>()
+                                      .incrementEventAwards(widget.eventId);
+                                  if (mounted) Navigator.of(ctx).pop();
+                                  if (!mounted) return;
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Thanks for your award!'),
+                                    ),
+                                  );
+                                } catch (e) {
+                                  if (!mounted) return;
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text('Failed to record award: $e'),
+                                    ),
+                                  );
+                                }
+                              }),
+                            ],
+                          );
+                          Widget content;
+                          if (isLandscape) {
+                            content = Row(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
-                                  'Send an award',
-                                  style: Theme.of(ctx).textTheme.titleLarge,
+                                Expanded(
+                                  flex: 3,
+                                  child: NETSQR((_) {}, showInfoImage: false),
                                 ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  'Scan the NETS QR to tip the organiser. Once paid, tap Register to confirm.',
-                                  style: Theme.of(ctx).textTheme.bodyMedium,
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  flex: 4,
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      ...instructions.children,
+                                      const SizedBox(height: 12),
+                                      Image.asset(
+                                        'assets/images/netsQrInfo.png',
+                                        width: 420,
+                                        fit: BoxFit.contain,
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                                const SizedBox(height: 12),
-                                NETSQR((BuildContext c) async {
-                                  try {
-                                    await GetIt.instance<FirebaseService>()
-                                        .incrementEventAwards(widget.eventId);
-                                    if (mounted) Navigator.of(ctx).pop();
-                                    if (!mounted) return;
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text('Thanks for your award!'),
-                                      ),
-                                    );
-                                  } catch (e) {
-                                    if (!mounted) return;
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text(
-                                          'Failed to record award: $e',
-                                        ),
-                                      ),
-                                    );
-                                  }
-                                }),
                               ],
-                            ),
+                            );
+                          }
+                          else {
+                            content = instructions;
+                          }
+                          return Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                            child: content,
                           );
                         },
                       );
@@ -289,39 +337,53 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                                     );
                                     final confirm = await showDialog<bool>(
                                       context: context,
-                                      builder:
-                                          (ctx) => AlertDialog(
-                                            title: const Text('Delete Event'),
-                                            content: const Text(
-                                              'Are you sure you want to delete this event?',
-                                            ),
-                                            actions: [
-                                              TextButton(
-                                                onPressed:
-                                                    () => Navigator.of(
-                                                      ctx,
-                                                    ).pop(false),
-                                                child: const Text('Cancel'),
-                                              ),
-                                              TextButton(
-                                                onPressed:
-                                                    () => Navigator.of(
-                                                      ctx,
-                                                    ).pop(true),
-                                                style: TextButton.styleFrom(
-                                                  foregroundColor:
-                                                      Theme.of(
-                                                        ctx,
-                                                      ).colorScheme.onError,
-                                                  backgroundColor:
-                                                      Theme.of(
-                                                        ctx,
-                                                      ).colorScheme.error,
-                                                ),
-                                                child: const Text('Delete'),
-                                              ),
-                                            ],
+                                      builder: (ctx) {
+                                        final scheme =
+                                            Theme.of(ctx).colorScheme;
+                                        final textTheme =
+                                            Theme.of(ctx).textTheme;
+                                        return AlertDialog(
+                                          backgroundColor:
+                                              scheme.surfaceContainerHigh,
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(16),
                                           ),
+                                          title: Text(
+                                            'Delete Event',
+                                            style:
+                                                textTheme.titleLarge?.copyWith(
+                                              color: scheme.onSurface,
+                                            ),
+                                          ),
+                                          content: Text(
+                                            'Are you sure you want to delete this event?',
+                                            style: textTheme.bodyMedium
+                                                ?.copyWith(
+                                              color: scheme.onSurfaceVariant,
+                                            ),
+                                          ),
+                                          actions: [
+                                            TextButton(
+                                              onPressed: () =>
+                                                  Navigator.of(ctx)
+                                                      .pop(false),
+                                              child: const Text('Cancel'),
+                                            ),
+                                            FilledButton(
+                                              onPressed: () =>
+                                                  Navigator.of(ctx).pop(true),
+                                              style: FilledButton.styleFrom(
+                                                backgroundColor:
+                                                    scheme.error,
+                                                foregroundColor:
+                                                    scheme.onError,
+                                              ),
+                                              child: const Text('Delete'),
+                                            ),
+                                          ],
+                                        );
+                                      },
                                     );
                                     if (confirm != true) return;
                                     setState(() => _deleting = true);
@@ -383,25 +445,39 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                   ),
                   const SizedBox(height: 12),
                 ],
-                if ((event.imageBase64 ?? '').isNotEmpty) ...[
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: AspectRatio(
-                      aspectRatio: 1,
-                      child: Image.memory(
-                        const Base64Decoder().convert(event.imageBase64!),
-                        fit: BoxFit.cover,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                ],
                 Text(
                   event.description?.toString() ?? '',
                   style: TextStyle(fontSize: texttheme.bodyLarge!.fontSize),
                 ),
-              ],
-            ),
+          ],
+        );
+
+        return Scaffold(
+          appBar: appBar,
+          body: SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child:
+                isLandscape
+                    ? Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if ((event.imageBase64 ?? '').isNotEmpty)
+                          Expanded(child: imageWidget),
+                        if ((event.imageBase64 ?? '').isNotEmpty)
+                          const SizedBox(width: 16),
+                        Expanded(flex: 2, child: detailsColumn),
+                      ],
+                    )
+                    : Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        detailsColumn,
+                        if ((event.imageBase64 ?? '').isNotEmpty) ...[
+                          const SizedBox(height: 16),
+                          imageWidget,
+                        ],
+                      ],
+                    ),
           ),
         );
       },

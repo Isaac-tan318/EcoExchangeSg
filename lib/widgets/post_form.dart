@@ -7,6 +7,7 @@ class PostForm extends StatelessWidget {
   final TextEditingController titleController;
   final TextEditingController descriptionController;
   final String? imageBase64;
+  final bool showImage;
 
   const PostForm({
     super.key,
@@ -14,6 +15,7 @@ class PostForm extends StatelessWidget {
     required this.titleController,
     required this.descriptionController,
     this.imageBase64,
+    this.showImage = true,
   });
 
   @override
@@ -55,7 +57,7 @@ class PostForm extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 10),
-            if (imageBase64 != null && imageBase64!.isNotEmpty) ...[
+            if (showImage && imageBase64 != null && imageBase64!.isNotEmpty) ...[
               ClipRRect(
                 borderRadius: BorderRadius.circular(12),
                 child: AspectRatio(

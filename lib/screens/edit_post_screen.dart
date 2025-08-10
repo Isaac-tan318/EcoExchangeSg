@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:convert';
 import 'package:flutter_application_1/models/post.dart';
 import 'package:flutter_application_1/services/firebase_service.dart';
 import 'package:flutter_application_1/widgets/post_form.dart';
@@ -89,6 +90,8 @@ class _EditPostState extends State<EditPost> {
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final texttheme = Theme.of(context).textTheme;
+  final isLandscape =
+    MediaQuery.of(context).orientation == Orientation.landscape;
     return Scaffold(
       appBar: AppBar(
         backgroundColor: scheme.primary,
@@ -121,19 +124,58 @@ class _EditPostState extends State<EditPost> {
       ),
       body: SafeArea(
         child: LayoutBuilder(
-          builder:
-              (context, constraints) => SingleChildScrollView(
-                padding: const EdgeInsets.only(bottom: 40),
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
-                  child: PostForm(
-                    formKey: _formKey,
-                    titleController: _titleCtrl,
-                    descriptionController: _descCtrl,
-                    imageBase64: widget.initial.imageBase64,
-                  ),
-                ),
+          builder: (context, constraints) {
+            final imageWidget = (widget.initial.imageBase64 != null &&
+                    widget.initial.imageBase64!.isNotEmpty)
+                ? ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: AspectRatio(
+                      aspectRatio: 1,
+                      child: Image.memory(
+                        const Base64Decoder().convert(
+                          widget.initial.imageBase64!,
+                        ),
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                  )
+                : const SizedBox.shrink();
+
+            return SingleChildScrollView(
+              padding: const EdgeInsets.only(bottom: 40),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                child: isLandscape
+                    ? Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (widget.initial.imageBase64 != null &&
+                              widget.initial.imageBase64!.isNotEmpty)
+                            Expanded(child: imageWidget),
+                          if (widget.initial.imageBase64 != null &&
+                              widget.initial.imageBase64!.isNotEmpty)
+                            const SizedBox(width: 16),
+                          Expanded(
+                            flex: 2,
+                            child: PostForm(
+                              formKey: _formKey,
+                              titleController: _titleCtrl,
+                              descriptionController: _descCtrl,
+                              imageBase64: widget.initial.imageBase64,
+                              showImage: false,
+                            ),
+                          ),
+                        ],
+                      )
+                    : PostForm(
+                        formKey: _formKey,
+                        titleController: _titleCtrl,
+                        descriptionController: _descCtrl,
+                        imageBase64: widget.initial.imageBase64,
+                      ),
               ),
+            );
+          },
         ),
       ),
     );

@@ -181,231 +181,310 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
           );
         }
 
+        final isLandscape =
+            MediaQuery.of(context).orientation == Orientation.landscape;
+
+        Widget imageWidget = const SizedBox.shrink();
+        if ((post.imageBase64 ?? '').isNotEmpty) {
+          imageWidget = ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: AspectRatio(
+              aspectRatio: 1,
+              child: Image.memory(
+                const Base64Decoder().convert(post.imageBase64!),
+                fit: BoxFit.cover,
+              ),
+            ),
+          );
+        }
+
+        // Header segment without image; description will be placed differently
+        // in portrait vs landscape to preserve original order.
+        final List<Widget> headerWidgets = [
+          Align(
+            alignment: Alignment.centerRight,
+            child: FilledButton.icon(
+              onPressed: () {
+                showModalBottomSheet(
+                  context: context,
+                  showDragHandle: true,
+                  isScrollControlled: true,
+                  builder: (ctx) {
+                    final scheme = Theme.of(ctx).colorScheme;
+                    final textTheme = Theme.of(ctx).textTheme;
+                    final isLandscape =
+                        MediaQuery.of(ctx).orientation == Orientation.landscape;
+                    // Build common instructions column (without info image; we place it conditionally)
+                    final instructions = Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Send an award', style: textTheme.titleLarge),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Scan the NETS QR to tip the creator. Once paid, tap Award to confirm.',
+                          style: textTheme.bodyMedium?.copyWith(
+                            color: scheme.onSurfaceVariant,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        NETSQR((BuildContext c) async {
+                          try {
+                            await GetIt.instance<FirebaseService>()
+                                .incrementPostAwards(widget.postId);
+                            if (mounted) Navigator.of(ctx).pop();
+                            if (!mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Thanks for your award!'),
+                              ),
+                            );
+                          } catch (e) {
+                            if (!mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Failed to record award: $e'),
+                              ),
+                            );
+                          }
+                        }),
+                      ],
+                    );
+                    Widget content;
+                    if (isLandscape) {
+                      content = Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            flex: 3,
+                            child: NETSQR((_) {}, showInfoImage: false),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            flex: 4,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                ...instructions.children,
+                                const SizedBox(height: 12),
+                                Image.asset(
+                                  'assets/images/netsQrInfo.png',
+                                  width: 420,
+                                  fit: BoxFit.contain,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      );
+                    }
+                    else {
+                      content = instructions;
+                    }
+                    return Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                      child: content,
+                    );
+                  },
+                );
+              },
+              icon: const Icon(Icons.card_giftcard),
+              label: const Text('Award'),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            post.title?.toString() ?? '',
+            style: TextStyle(
+              fontSize: texttheme.headlineLarge!.fontSize,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: scheme.secondaryContainer,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  _relativeTime(post.date_posted as DateTime),
+                  style: TextStyle(
+                    color: scheme.onSecondaryContainer,
+                    fontSize: texttheme.bodyMedium!.fontSize,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              if ((post.poster?.toString().trim() ?? '').isNotEmpty)
+                Text(
+                  'by ${post.poster}',
+                  style: TextStyle(color: scheme.onSurfaceVariant),
+                ),
+              const Spacer(),
+              if (post.authorId == service.getCurrentUser()?.uid) ...[
+                TextButton.icon(
+                  onPressed: _deleting || !_online
+                      ? null
+                      : () async {
+                          final navigator = Navigator.of(context);
+                          final updated = await navigator.pushNamed(
+                            EditPost.routeName,
+                            arguments: {
+                              'postId': widget.postId,
+                              'post': post,
+                            },
+                          );
+                          if (updated == true && mounted) setState(() {});
+                        },
+                  icon: Icon(Icons.edit, color: scheme.primary),
+                  label: Text(
+                    'Edit',
+                    style: TextStyle(color: scheme.primary),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                if (_deleting)
+                  SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        scheme.error,
+                      ),
+                    ),
+                  )
+                else
+                  TextButton.icon(
+                    onPressed: !_online
+                        ? null
+                        : () async {
+                            final navigator = Navigator.of(context);
+                            final messenger =
+                                ScaffoldMessenger.maybeOf(context);
+                            final confirm = await showDialog<bool>(
+                              context: context,
+                              builder: (ctx) {
+                                final scheme = Theme.of(ctx).colorScheme;
+                                final textTheme = Theme.of(ctx).textTheme;
+                                return AlertDialog(
+                                  backgroundColor:
+                                      scheme.surfaceContainerHigh,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                  title: Text(
+                                    'Delete Post',
+                                    style: textTheme.titleLarge?.copyWith(
+                                      color: scheme.onSurface,
+                                    ),
+                                  ),
+                                  content: Text(
+                                    'Are you sure you want to delete this post?',
+                                    style: textTheme.bodyMedium?.copyWith(
+                                      color: scheme.onSurfaceVariant,
+                                    ),
+                                  ),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () =>
+                                          Navigator.of(ctx).pop(false),
+                                      child: const Text('Cancel'),
+                                    ),
+                                    FilledButton(
+                                      onPressed: () =>
+                                          Navigator.of(ctx).pop(true),
+                                      style: FilledButton.styleFrom(
+                                        backgroundColor: scheme.error,
+                                        foregroundColor: scheme.onError,
+                                      ),
+                                      child: const Text('Delete'),
+                                    ),
+                                  ],
+                                );
+                              },
+                            );
+                            if (confirm != true) return;
+                            setState(() => _deleting = true);
+                            try {
+                              await service.deletePost(widget.postId);
+                              // Return to the previous screen instead of the very first (Login)
+                              navigator.pop(true);
+                            } catch (e) {
+                              if (!mounted) return;
+                              setState(() => _deleting = false);
+                              messenger?.showSnackBar(
+                                SnackBar(
+                                  content: Text('Failed to delete: $e'),
+                                ),
+                              );
+                            }
+                          },
+                    icon: Icon(Icons.delete, color: scheme.error),
+                    label: Text(
+                      'Delete',
+                      style: TextStyle(color: scheme.error),
+                    ),
+                  ),
+              ],
+            ],
+          ),
+          const SizedBox(height: 16),
+        ];
+
         return Scaffold(
           appBar: appBar,
           body: SingleChildScrollView(
             padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: FilledButton.icon(
-                    onPressed: () {
-                      showModalBottomSheet(
-                        context: context,
-                        showDragHandle: true,
-                        isScrollControlled: true,
-                        builder: (ctx) {
-                          return Padding(
-                            padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Send an award',
-                                  style: Theme.of(ctx).textTheme.titleLarge,
+            child: isLandscape
+                ? Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if ((post.imageBase64 ?? '').isNotEmpty)
+                          Expanded(child: imageWidget),
+                        if ((post.imageBase64 ?? '').isNotEmpty)
+                          const SizedBox(width: 16),
+                        Expanded(
+                          flex: 2,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              ...headerWidgets,
+                              Text(
+                                post.description?.toString() ?? '',
+                                style: TextStyle(
+                                  fontSize: texttheme.bodyLarge!.fontSize,
                                 ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  'Scan the NETS QR to tip the creator. Once paid, tap Award to confirm.',
-                                  style: Theme.of(ctx).textTheme.bodyMedium,
-                                ),
-                                const SizedBox(height: 12),
-                                NETSQR((BuildContext c) async {
-                                  try {
-                                    await GetIt.instance<FirebaseService>()
-                                        .incrementPostAwards(widget.postId);
-                                    if (mounted) Navigator.of(ctx).pop();
-                                    if (!mounted) return;
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text('Thanks for your award!'),
-                                      ),
-                                    );
-                                  } catch (e) {
-                                    if (!mounted) return;
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text(
-                                          'Failed to record award: $e',
-                                        ),
-                                      ),
-                                    );
-                                  }
-                                }),
-                              ],
-                            ),
-                          );
-                        },
-                      );
-                    },
-                    icon: const Icon(Icons.card_giftcard),
-                    label: const Text('Award'),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  post.title?.toString() ?? '',
-                  style: TextStyle(
-                    fontSize: texttheme.headlineLarge!.fontSize,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: scheme.secondaryContainer,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        _relativeTime(post.date_posted as DateTime),
-                        style: TextStyle(
-                          color: scheme.onSecondaryContainer,
-                          fontSize: texttheme.bodyMedium!.fontSize,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    if ((post.poster?.toString().trim() ?? '').isNotEmpty)
-                      Text(
-                        'by ${post.poster}',
-                        style: TextStyle(color: scheme.onSurfaceVariant),
-                      ),
-                    const Spacer(),
-                    if (post.authorId == service.getCurrentUser()?.uid) ...[
-                      TextButton.icon(
-                        onPressed:
-                            _deleting || !_online
-                                ? null
-                                : () async {
-                                  final navigator = Navigator.of(context);
-                                  final updated = await navigator.pushNamed(
-                                    EditPost.routeName,
-                                    arguments: {
-                                      'postId': widget.postId,
-                                      'post': post,
-                                    },
-                                  );
-                                  if (updated == true && mounted)
-                                    setState(() {});
-                                },
-                        icon: Icon(Icons.edit, color: scheme.primary),
-                        label: Text(
-                          'Edit',
-                          style: TextStyle(color: scheme.primary),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      if (_deleting)
-                        SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              scheme.error,
-                            ),
-                          ),
-                        )
-                      else
-                        TextButton.icon(
-                          onPressed:
-                              !_online
-                                  ? null
-                                  : () async {
-                                    final navigator = Navigator.of(context);
-                                    final messenger = ScaffoldMessenger.maybeOf(
-                                      context,
-                                    );
-                                    final confirm = await showDialog<bool>(
-                                      context: context,
-                                      builder:
-                                          (ctx) => AlertDialog(
-                                            title: const Text('Delete Post'),
-                                            content: const Text(
-                                              'Are you sure you want to delete this post?',
-                                            ),
-                                            actions: [
-                                              TextButton(
-                                                onPressed:
-                                                    () => Navigator.of(
-                                                      ctx,
-                                                    ).pop(false),
-                                                child: const Text('Cancel'),
-                                              ),
-                                              TextButton(
-                                                onPressed:
-                                                    () => Navigator.of(
-                                                      ctx,
-                                                    ).pop(true),
-                                                style: TextButton.styleFrom(
-                                                  foregroundColor:
-                                                      Theme.of(
-                                                        ctx,
-                                                      ).colorScheme.onError,
-                                                  backgroundColor:
-                                                      Theme.of(
-                                                        ctx,
-                                                      ).colorScheme.error,
-                                                ),
-                                                child: const Text('Delete'),
-                                              ),
-                                            ],
-                                          ),
-                                    );
-                                    if (confirm != true) return;
-                                    setState(() => _deleting = true);
-                                    try {
-                                      await service.deletePost(widget.postId);
-                                      // Return to the previous screen instead of the very first (Login)
-                                      navigator.pop(true);
-                                    } catch (e) {
-                                      if (!mounted) return;
-                                      setState(() => _deleting = false);
-                                      messenger?.showSnackBar(
-                                        SnackBar(
-                                          content: Text('Failed to delete: $e'),
-                                        ),
-                                      );
-                                    }
-                                  },
-                          icon: Icon(Icons.delete, color: scheme.error),
-                          label: Text(
-                            'Delete',
-                            style: TextStyle(color: scheme.error),
+                              ),
+                            ],
                           ),
                         ),
-                    ],
-                  ],
-                ),
-                const SizedBox(height: 16),
-                if ((post.imageBase64 ?? '').isNotEmpty) ...[
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: AspectRatio(
-                      aspectRatio: 1,
-                      child: Image.memory(
-                        const Base64Decoder().convert(post.imageBase64!),
-                        fit: BoxFit.cover,
-                      ),
+                      ],
+                    )
+                : Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        ...headerWidgets,
+                        if ((post.imageBase64 ?? '').isNotEmpty) ...[
+                          const SizedBox(height: 16),
+                          imageWidget,
+                        ],
+                        const SizedBox(height: 16),
+                        Text(
+                          post.description?.toString() ?? '',
+                          style: TextStyle(
+                            fontSize: texttheme.bodyLarge!.fontSize,
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                  const SizedBox(height: 16),
-                ],
-                Text(
-                  post.description?.toString() ?? '',
-                  style: TextStyle(fontSize: texttheme.bodyLarge!.fontSize),
-                ),
-              ],
-            ),
           ),
         );
       },

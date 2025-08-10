@@ -137,6 +137,8 @@ class _CreatePostState extends State<CreatePost> {
   Widget build(BuildContext context) {
     var scheme = Theme.of(context).colorScheme;
     var texttheme = Theme.of(context).textTheme;
+  final isLandscape =
+    MediaQuery.of(context).orientation == Orientation.landscape;
     // Navigator instance obtained where needed
 
     return Scaffold(
@@ -206,12 +208,45 @@ class _CreatePostState extends State<CreatePost> {
                 padding: const EdgeInsets.only(bottom: 100),
                 child: ConstrainedBox(
                   constraints: BoxConstraints(minHeight: constraints.maxHeight),
-                  child: PostForm(
-                    formKey: _formKey,
-                    titleController: _titleCtrl,
-                    descriptionController: _descCtrl,
-                    imageBase64: _imageBase64,
-                  ),
+                  child: isLandscape
+                      ? Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (_imageBase64 != null && _imageBase64!.isNotEmpty)
+                              Expanded(
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(12),
+                                  child: AspectRatio(
+                                    aspectRatio: 1,
+                                    child: Image.memory(
+                                      const Base64Decoder().convert(
+                                        _imageBase64!,
+                                      ),
+                                      fit: BoxFit.cover,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            if (_imageBase64 != null && _imageBase64!.isNotEmpty)
+                              const SizedBox(width: 16),
+                            Expanded(
+                              flex: 2,
+                              child: PostForm(
+                                formKey: _formKey,
+                                titleController: _titleCtrl,
+                                descriptionController: _descCtrl,
+                                imageBase64: _imageBase64,
+                                showImage: false,
+                              ),
+                            ),
+                          ],
+                        )
+                      : PostForm(
+                          formKey: _formKey,
+                          titleController: _titleCtrl,
+                          descriptionController: _descCtrl,
+                          imageBase64: _imageBase64,
+                        ),
                 ),
               ),
         ),

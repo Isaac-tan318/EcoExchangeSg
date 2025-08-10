@@ -11,7 +11,8 @@ import 'package:http/http.dart';
 
 class NETSQR extends StatefulWidget {
   final Function register;
-  NETSQR(this.register, {super.key});
+  final bool showInfoImage;
+  NETSQR(this.register, {super.key, this.showInfoImage = true});
 
   @override
   State<NETSQR> createState() => _NETSQRState();
@@ -114,12 +115,21 @@ class _NETSQRState extends State<NETSQR> {
     });
   }
 
-  // Builds the QR code widget along with timer and info image.
-  Widget displayQRCode() {
+  // Builds the QR code widget along with timer and info image, sized to parent.
+  Widget displayQRCode(double maxWidth) {
+    final double contentWidth = maxWidth.clamp(220.0, 480.0);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        if (qrCode != null) Image.memory(qrCode!),
+        if (qrCode != null)
+          SizedBox(
+            width: contentWidth,
+            height: contentWidth,
+            child: Image.memory(
+              qrCode!,
+              fit: BoxFit.contain,
+            ),
+          ),
         if (responseCode != '00')
           Center(
             child: Padding(
@@ -133,11 +143,14 @@ class _NETSQRState extends State<NETSQR> {
               ),
             ),
           ),
-        Image.asset(
-          'assets/images/netsQrInfo.png',
-          width: MediaQuery.of(context).size.width * 0.8,
-        ),
-        const SizedBox(height: 10),
+        if (widget.showInfoImage) ...[
+          Image.asset(
+            'assets/images/netsQrInfo.png',
+            width: contentWidth * 0.9,
+            fit: BoxFit.contain,
+          ),
+          const SizedBox(height: 10),
+        ],
       ],
     );
   }
@@ -146,21 +159,26 @@ class _NETSQRState extends State<NETSQR> {
   // Displays QR code and success/fail statusn.
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        qrCode != null &&
-                timeLeft! > 0 &&
-                responseCode == null &&
-                message == null
-            ? displayQRCode()
-            : message == 'QR code scanned' && responseCode == '00'
-            ? NETSSuccess()
-            : responseCode != null
-            ? NETSFail()
-            : message == "Timeout"
-            ? displayQRCode()
-            : Center(),
-      ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final maxW = constraints.maxWidth;
+        return Column(
+          children: [
+            qrCode != null &&
+                    timeLeft! > 0 &&
+                    responseCode == null &&
+                    message == null
+                ? displayQRCode(maxW)
+                : message == 'QR code scanned' && responseCode == '00'
+                ? NETSSuccess()
+                : responseCode != null
+                ? NETSFail()
+                : message == "Timeout"
+                ? displayQRCode(maxW)
+                : const SizedBox.shrink(),
+          ],
+        );
+      },
     );
   }
 }

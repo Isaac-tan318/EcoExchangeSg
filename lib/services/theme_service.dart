@@ -18,7 +18,7 @@ class ThemeService extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     final modeIndex = prefs.getInt(_keyMode);
     final seedVal = prefs.getInt(_keySeed);
-  final textScaleVal = prefs.getDouble(_keyTextScale);
+    final textScaleVal = prefs.getDouble(_keyTextScale);
     if (modeIndex != null &&
         modeIndex >= 0 &&
         modeIndex < ThemeMode.values.length) {
@@ -54,7 +54,7 @@ class ThemeService extends ChangeNotifier {
 
   Future<void> setTextScale(double scale) async {
     // clamp to reasonable range
-    final clamped = scale.clamp(0.8, 1.6);
+    final clamped = scale.clamp(0.8, 1.6).toDouble();
     _textScale = clamped;
     notifyListeners();
     final prefs = await SharedPreferences.getInstance();
@@ -95,11 +95,11 @@ class ThemeService extends ChangeNotifier {
   Future<void> resetToDefaults() async {
     _mode = ThemeMode.light;
     _seed = const Color(0xFF3D8259); // default green
-  _textScale = 1.0;
+    _textScale = 1.0;
     notifyListeners();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(_keyMode, _mode.index);
     await prefs.setInt(_keySeed, _seed.value);
-  await prefs.setDouble(_keyTextScale, _textScale);
+    await prefs.setDouble(_keyTextScale, _textScale);
   }
 }

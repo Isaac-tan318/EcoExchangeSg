@@ -25,6 +25,7 @@ class _EditPostState extends State<EditPost> {
 
   final _service = GetIt.instance<FirebaseService>();
 
+// get the info of the original post to autofill
   @override
   void initState() {
     super.initState();
@@ -57,7 +58,10 @@ class _EditPostState extends State<EditPost> {
       );
       return;
     }
+    // validation
     if (!_formKey.currentState!.validate()) return;
+
+    // sending to firebase
     setState(() => _saving = true);
     try {
       await _service.updatePost(
@@ -117,18 +121,19 @@ class _EditPostState extends State<EditPost> {
       ),
       body: SafeArea(
         child: LayoutBuilder(
-          builder: (context, constraints) => SingleChildScrollView(
-            padding: const EdgeInsets.only(bottom: 40),
-            child: ConstrainedBox(
-              constraints: BoxConstraints(minHeight: constraints.maxHeight),
-              child: PostForm(
-                formKey: _formKey,
-                titleController: _titleCtrl,
-                descriptionController: _descCtrl,
-                imageBase64: widget.initial.imageBase64,
+          builder:
+              (context, constraints) => SingleChildScrollView(
+                padding: const EdgeInsets.only(bottom: 40),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                  child: PostForm(
+                    formKey: _formKey,
+                    titleController: _titleCtrl,
+                    descriptionController: _descCtrl,
+                    imageBase64: widget.initial.imageBase64,
+                  ),
+                ),
               ),
-            ),
-          ),
         ),
       ),
     );

@@ -49,10 +49,10 @@ class _PostsScreenState extends State<PostsScreen> {
       'November',
       'December',
     ];
-  final day = d.day; // no leading zero for readability
-  final monthName = months[d.month - 1];
-  final year = d.year;
-  return '$day $monthName $year';
+    final day = d.day; // no leading zero for readability
+    final monthName = months[d.month - 1];
+    final year = d.year;
+    return '$day $monthName $year';
   }
 
   String _timeLabel() {
@@ -312,23 +312,62 @@ class _PostsScreenState extends State<PostsScreen> {
               if (posts.isEmpty) {
                 return const Center(child: Text('No posts yet'));
               }
+              final isLandscape =
+                  MediaQuery.of(context).orientation == Orientation.landscape;
+
+              Widget buildPostTile(Post post) {
+                final poster = (post.poster ?? '').toString().trim();
+                final mention = poster.isEmpty ? '' : '@$poster ';
+                return Slide(
+                  PostWidget(post),
+                  initialReplyTitle: mention,
+                  mentionAuthorId: (post.authorId ?? '').toString(),
+                  online: _online,
+                );
+              }
+
               return RefreshIndicator(
                 onRefresh: () async {},
-                child: ListView.builder(
-                  shrinkWrap: true,
-                  itemCount: posts.length,
-                  itemBuilder: (BuildContext context, int index) {
-                    final post = posts[index];
-                    final poster = (post.poster ?? '').toString().trim();
-                    final mention = poster.isEmpty ? '' : '@$poster ';
-                    return Slide(
-                      PostWidget(post),
-                      initialReplyTitle: mention,
-                      mentionAuthorId: (post.authorId ?? '').toString(),
-                      online: _online,
-                    );
-                  },
-                ),
+                child:
+                    !isLandscape
+                        ? ListView.builder(
+                          shrinkWrap: true,
+                          itemCount: posts.length,
+                          itemBuilder: (BuildContext context, int index) {
+                            final post = posts[index];
+                            return buildPostTile(post);
+                          },
+                        )
+                        : ListView.builder(
+                          shrinkWrap: true,
+                          itemCount: (posts.length + 1) ~/ 2,
+                          itemBuilder: (BuildContext context, int rowIndex) {
+                            final leftIndex = rowIndex * 2;
+                            final rightIndex = leftIndex + 1;
+                            final hasRight = rightIndex < posts.length;
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8.0,
+                                vertical: 6.0,
+                              ),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Expanded(
+                                    child: buildPostTile(posts[leftIndex]),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child:
+                                        hasRight
+                                            ? buildPostTile(posts[rightIndex])
+                                            : const SizedBox.shrink(),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
               );
             },
           ),

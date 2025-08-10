@@ -70,7 +70,8 @@ class _HomeScreenState extends State<HomeScreen> {
     ];
 
     final media = MediaQuery.of(context);
-    final useRail = media.orientation == Orientation.landscape || media.size.width >= 600;
+    final useRail =
+        media.orientation == Orientation.landscape || media.size.width >= 600;
 
     if (useRail) {
       return Scaffold(
@@ -123,7 +124,10 @@ class _HomeScreenState extends State<HomeScreen> {
         unselectedItemColor: Theme.of(context).colorScheme.onSurfaceVariant,
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.calendar_month), label: 'Events'),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.calendar_month),
+            label: 'Events',
+          ),
           BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
         ],
       ),

@@ -54,7 +54,8 @@ class _EventsScreenState extends State<EventsScreen>
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     final texttheme = Theme.of(context).textTheme;
-  final maxContentWidth = MediaQuery.of(context).size.shortestSide;
+    final mq = MediaQuery.of(context);
+    final isLandscape = mq.orientation == Orientation.landscape;
 
     return Scaffold(
       appBar: PreferredSize(
@@ -69,268 +70,514 @@ class _EventsScreenState extends State<EventsScreen>
           ),
         ),
       ),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: BoxConstraints(maxWidth: maxContentWidth),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8.0),
-            child: StreamBuilder<List<Event>>(
-              stream: _eventsStream,
-              initialData: const [],
-              builder: (context, snapshot) {
-          if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
-          }
-          final events = snapshot.data ?? [];
-          if (snapshot.connectionState == ConnectionState.waiting &&
-              events.isEmpty) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          // Group events by day using startDateTime date
-          final Map<DateTime, List<Event>> byDay = {};
-          for (final event in events) {
-            final dt = event.startDateTime!;
-            final dayKey = DateTime(dt.year, dt.month, dt.day);
-            byDay.putIfAbsent(dayKey, () => []).add(event);
-          }
+      body: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8.0),
+        child: StreamBuilder<List<Event>>(
+          stream: _eventsStream,
+          initialData: const [],
+          builder: (context, snapshot) {
+            if (snapshot.hasError) {
+              return Center(child: Text('Error: ${snapshot.error}'));
+            }
+            final events = snapshot.data ?? [];
+            if (snapshot.connectionState == ConnectionState.waiting &&
+                events.isEmpty) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            // Group events by day using startDateTime date
+            final Map<DateTime, List<Event>> byDay = {};
+            for (final event in events) {
+              final dt = event.startDateTime!;
+              final dayKey = DateTime(dt.year, dt.month, dt.day);
+              byDay.putIfAbsent(dayKey, () => []).add(event);
+            }
 
-          // make it the current day if nothing is chosen if not make it the selected day
-          final selectedDayKey =
-              _selectedDay == null
-                  ? DateTime(
-                    _focusedDay.year,
-                    _focusedDay.month,
-                    _focusedDay.day,
-                  )
-                  : DateTime(
-                    _selectedDay!.year,
-                    _selectedDay!.month,
-                    _selectedDay!.day,
-                  );
+            // make it the current day if nothing is chosen if not make it the selected day
+            final selectedDayKey =
+                _selectedDay == null
+                    ? DateTime(
+                      _focusedDay.year,
+                      _focusedDay.month,
+                      _focusedDay.day,
+                    )
+                    : DateTime(
+                      _selectedDay!.year,
+                      _selectedDay!.month,
+                      _selectedDay!.day,
+                    );
 
-          // List tab
-          return TabBarView(
-            controller: _tabController,
-            children: [
-              // normal view
-              ListView.builder(
-                itemCount: (events.isEmpty ? 1 : events.length) + 1,
-                itemBuilder: (context, index) {
-                  if (index == 0) {
-                    return Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
-                      child: Text(
-                        'Upcoming Events',
-                        style: texttheme.headlineMedium?.copyWith(
-                          color: scheme.onSurface,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    );
-                  }
-                  if (events.isEmpty) {
-                    return const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 40),
-                      child: Center(child: Text('No events yet')),
-                    );
-                  }
-          final event = events[index - 1];
-                  return InkWell(
-                    onTap: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-              builder: (_) => EventDetailsScreen(eventId: event.id!),
+            // List tab
+            return TabBarView(
+              controller: _tabController,
+              children: [
+                // List tab: portrait uses single column list; landscape uses 2-column rows
+                Builder(
+                  builder: (context) {
+                    Widget buildEventTile(Event event) {
+                      return InkWell(
+                        onTap: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder:
+                                  (_) => EventDetailsScreen(eventId: event.id!),
+                            ),
+                          );
+                        },
+                        child: EventWidget(
+                          event: event,
+                          trailing:
+                              _isOrganiser
+                                  ? PopupMenuButton<String>(
+                                    onSelected: (value) async {
+                                      if (!_online) {
+                                        ScaffoldMessenger.maybeOf(
+                                          context,
+                                        )?.showSnackBar(
+                                          const SnackBar(
+                                            content: Text(
+                                              'Offline: action unavailable',
+                                            ),
+                                          ),
+                                        );
+                                        return;
+                                      }
+                                      if (value == 'edit') {
+                                        Navigator.of(context).push(
+                                          MaterialPageRoute(
+                                            builder:
+                                                (_) => const EditEventScreen(),
+                                            settings: RouteSettings(
+                                              arguments: event,
+                                            ),
+                                          ),
+                                        );
+                                      } else if (value == 'delete') {
+                                        await firebaseService.deleteEvent(
+                                          event.id!,
+                                        );
+                                      }
+                                    },
+                                    itemBuilder:
+                                        (ctx) => const [
+                                          PopupMenuItem(
+                                            value: 'edit',
+                                            child: Text('Edit'),
+                                          ),
+                                          PopupMenuItem(
+                                            value: 'delete',
+                                            child: Text('Delete'),
+                                          ),
+                                        ],
+                                  )
+                                  : null,
                         ),
                       );
-                    },
-                    child: EventWidget(
-            event: event,
-                      trailing:
-                          _isOrganiser
-                              ? PopupMenuButton<String>(
-                                onSelected: (value) async {
-                                  if (!_online) {
-                                    ScaffoldMessenger.maybeOf(
-                                      context,
-                                    )?.showSnackBar(
-                                      const SnackBar(
-                                        content: Text(
-                                          'Offline: action unavailable',
-                                        ),
-                                      ),
-                                    );
-                                    return;
-                                  }
-                  if (value == 'edit') {
-                                    Navigator.of(context).push(
-                                      MaterialPageRoute(
-                    builder: (_) => const EditEventScreen(),
-                    settings: RouteSettings(arguments: event),
-                                      ),
-                                    );
-                                  } else if (value == 'delete') {
-                  await firebaseService.deleteEvent(event.id!);
-                                  }
-                                },
-                                itemBuilder:
-                                    (ctx) => const [
-                                      PopupMenuItem(
-                                        value: 'edit',
-                                        child: Text('Edit'),
-                                      ),
-                                      PopupMenuItem(
-                                        value: 'delete',
-                                        child: Text('Delete'),
-                                      ),
-                                    ],
-                              )
-                              : null,
-                    ),
-                  );
-                },
-              ),
-              // Calendar tab
-              Column(
-                children: [
-                  TableCalendar<Event>(
-                    firstDay: DateTime(2000),
-                    lastDay: DateTime(2100),
-                    focusedDay: _focusedDay,
-                    calendarFormat: _calFormat,
-                    headerStyle: const HeaderStyle(
-                      formatButtonShowsNext: false,
-                    ),
-                    availableCalendarFormats: {
-                      CalendarFormat.month: 'Month',
-                      CalendarFormat.twoWeeks: '2 weeks',
-                      CalendarFormat.week: 'Week',
-                    },
-                    selectedDayPredicate: (day) => isSameDay(_selectedDay, day),
-                    eventLoader: (day) {
-                      final key = DateTime(day.year, day.month, day.day);
-                      return byDay[key] ?? const [];
-                    },
-                    calendarBuilders: CalendarBuilders<Event>(
-                      markerBuilder: (context, day, events) {
-                        if (events.isEmpty) return const SizedBox.shrink();
-                        final color = Theme.of(context).colorScheme.primary;
-                        final maxDots = 3;
-                        final count =
-                            events.length > maxDots ? maxDots : events.length;
-                        return Align(
-                          alignment: Alignment.bottomCenter,
-                          child: Wrap(
-                            alignment: WrapAlignment.center,
-                            spacing: 2,
-                            runSpacing: 2,
-                            children: List.generate(
-                              count,
-                              (_) => Container(
-                                width: 5,
-                                height: 5,
-                                decoration: BoxDecoration(
-                                  color: color,
-                                  shape: BoxShape.circle,
+                    }
+
+                    if (!isLandscape) {
+                      // Portrait: original single list
+                      return ListView.builder(
+                        itemCount: (events.isEmpty ? 1 : events.length) + 1,
+                        itemBuilder: (context, index) {
+                          if (index == 0) {
+                            return Padding(
+                              padding: const EdgeInsets.fromLTRB(
+                                20,
+                                20,
+                                20,
+                                10,
+                              ),
+                              child: Text(
+                                'Upcoming Events',
+                                style: texttheme.headlineMedium?.copyWith(
+                                  color: scheme.onSurface,
+                                  fontWeight: FontWeight.bold,
                                 ),
                               ),
+                            );
+                          }
+                          if (events.isEmpty) {
+                            return const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 40),
+                              child: Center(child: Text('No events yet')),
+                            );
+                          }
+                          final event = events[index - 1];
+                          return buildEventTile(event);
+                        },
+                      );
+                    }
+
+                    // Landscape: 2 horizontally events (pair per row)
+                    final rowsCount = (events.length + 1) ~/ 2;
+                    return ListView.builder(
+                      itemCount: 1 + (rowsCount == 0 ? 1 : rowsCount),
+                      itemBuilder: (context, index) {
+                        if (index == 0) {
+                          return Padding(
+                            padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
+                            child: Text(
+                              'Upcoming Events',
+                              style: texttheme.headlineMedium?.copyWith(
+                                color: scheme.onSurface,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
+                          );
+                        }
+                        if (rowsCount == 0) {
+                          return const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 40),
+                            child: Center(child: Text('No events yet')),
+                          );
+                        }
+                        final leftIndex = (index - 1) * 2;
+                        final rightIndex = leftIndex + 1;
+                        final left = events[leftIndex];
+                        final hasRight = rightIndex < events.length;
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8.0,
+                            vertical: 6.0,
+                          ),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(child: buildEventTile(left)),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child:
+                                    hasRight
+                                        ? buildEventTile(events[rightIndex])
+                                        : const SizedBox.shrink(),
+                              ),
+                            ],
                           ),
                         );
                       },
-                    ),
-                    onDaySelected: (selectedDay, focusedDay) {
-                      setState(() {
-                        _selectedDay = selectedDay;
-                        _focusedDay = focusedDay;
-                      });
-                    },
-                    onFormatChanged: (format) {
-                      setState(() => _calFormat = format);
-                    },
-                    onPageChanged: (focusedDay) {
-                      _focusedDay = focusedDay;
-                    },
-                  ),
-                  const SizedBox(height: 8),
-                  Expanded(
-                    child:
-                        (byDay[selectedDayKey] == null ||
-                                byDay[selectedDayKey]!.isEmpty)
-                            ? const Center(child: Text('No events this day'))
-                            : ListView.builder(
-                              itemCount: byDay[selectedDayKey]!.length,
-                              itemBuilder: (context, idx) {
-                                final event = byDay[selectedDayKey]![idx];
-                                return InkWell(
-                                  onTap: () {
-                                    Navigator.of(context).push(
-                                      MaterialPageRoute(
-                                        builder:
-                                            (_) => EventDetailsScreen(
-                                              eventId: event.id!,
-                                            ),
+                    );
+                  },
+                ),
+                // Calendar tab
+                !isLandscape
+                    ? Column(
+                      children: [
+                        TableCalendar<Event>(
+                          firstDay: DateTime(2000),
+                          lastDay: DateTime(2100),
+                          focusedDay: _focusedDay,
+                          calendarFormat: _calFormat,
+                          headerStyle: const HeaderStyle(
+                            formatButtonShowsNext: false,
+                          ),
+                          availableCalendarFormats: {
+                            CalendarFormat.month: 'Month',
+                            CalendarFormat.twoWeeks: '2 weeks',
+                            CalendarFormat.week: 'Week',
+                          },
+                          selectedDayPredicate:
+                              (day) => isSameDay(_selectedDay, day),
+                          eventLoader: (day) {
+                            final key = DateTime(day.year, day.month, day.day);
+                            return byDay[key] ?? const [];
+                          },
+                          calendarBuilders: CalendarBuilders<Event>(
+                            markerBuilder: (context, day, events) {
+                              if (events.isEmpty)
+                                return const SizedBox.shrink();
+                              final color =
+                                  Theme.of(context).colorScheme.primary;
+                              final maxDots = 3;
+                              final count =
+                                  events.length > maxDots
+                                      ? maxDots
+                                      : events.length;
+                              return Align(
+                                alignment: Alignment.bottomCenter,
+                                child: Wrap(
+                                  alignment: WrapAlignment.center,
+                                  spacing: 2,
+                                  runSpacing: 2,
+                                  children: List.generate(
+                                    count,
+                                    (_) => Container(
+                                      width: 5,
+                                      height: 5,
+                                      decoration: BoxDecoration(
+                                        color: color,
+                                        shape: BoxShape.circle,
                                       ),
-                                    );
-                                  },
-                                  child: EventWidget(
-                                    event: event,
-                                    trailing:
-                                        _isOrganiser
-                                            ? PopupMenuButton<String>(
-                                              onSelected: (value) async {
-                                                if (!_online) {
-                                                  ScaffoldMessenger.maybeOf(
-                                                    context,
-                                                  )?.showSnackBar(
-                                                    const SnackBar(
-                                                      content: Text(
-                                                        'Offline: action unavailable',
-                                                      ),
-                                                    ),
-                                                  );
-                                                  return;
-                                                }
-                        if (value == 'edit') {
-                                                  Navigator.of(context).push(
-                                                    MaterialPageRoute(
-                                                      builder:
-                                                          (_) =>
-                                                              const EditEventScreen(),
-                                                      settings: RouteSettings(
-                            arguments: event,
-                                                      ),
-                                                    ),
-                                                  );
-                                                } else if (value == 'delete') {
-                          await firebaseService
-                            .deleteEvent(event.id!);
-                                                }
-                                              },
-                                              itemBuilder:
-                                                  (ctx) => const [
-                                                    PopupMenuItem(
-                                                      value: 'edit',
-                                                      child: Text('Edit'),
-                                                    ),
-                                                    PopupMenuItem(
-                                                      value: 'delete',
-                                                      child: Text('Delete'),
-                                                    ),
-                                                  ],
-                                            )
-                                            : null,
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                          onDaySelected: (selectedDay, focusedDay) {
+                            setState(() {
+                              _selectedDay = selectedDay;
+                              _focusedDay = focusedDay;
+                            });
+                          },
+                          onFormatChanged: (format) {
+                            setState(() => _calFormat = format);
+                          },
+                          onPageChanged: (focusedDay) {
+                            _focusedDay = focusedDay;
+                          },
+                        ),
+                        const SizedBox(height: 8),
+                        Expanded(
+                          child:
+                              (byDay[selectedDayKey] == null ||
+                                      byDay[selectedDayKey]!.isEmpty)
+                                  ? const Center(
+                                    child: Text('No events this day'),
+                                  )
+                                  : ListView.builder(
+                                    itemCount: byDay[selectedDayKey]!.length,
+                                    itemBuilder: (context, idx) {
+                                      final event = byDay[selectedDayKey]![idx];
+                                      return InkWell(
+                                        onTap: () {
+                                          Navigator.of(context).push(
+                                            MaterialPageRoute(
+                                              builder:
+                                                  (_) => EventDetailsScreen(
+                                                    eventId: event.id!,
+                                                  ),
+                                            ),
+                                          );
+                                        },
+                                        child: EventWidget(
+                                          event: event,
+                                          trailing:
+                                              _isOrganiser
+                                                  ? PopupMenuButton<String>(
+                                                    onSelected: (value) async {
+                                                      if (!_online) {
+                                                        ScaffoldMessenger.maybeOf(
+                                                          context,
+                                                        )?.showSnackBar(
+                                                          const SnackBar(
+                                                            content: Text(
+                                                              'Offline: action unavailable',
+                                                            ),
+                                                          ),
+                                                        );
+                                                        return;
+                                                      }
+                                                      if (value == 'edit') {
+                                                        Navigator.of(
+                                                          context,
+                                                        ).push(
+                                                          MaterialPageRoute(
+                                                            builder:
+                                                                (_) =>
+                                                                    const EditEventScreen(),
+                                                            settings:
+                                                                RouteSettings(
+                                                                  arguments:
+                                                                      event,
+                                                                ),
+                                                          ),
+                                                        );
+                                                      } else if (value ==
+                                                          'delete') {
+                                                        await firebaseService
+                                                            .deleteEvent(
+                                                              event.id!,
+                                                            );
+                                                      }
+                                                    },
+                                                    itemBuilder:
+                                                        (ctx) => const [
+                                                          PopupMenuItem(
+                                                            value: 'edit',
+                                                            child: Text('Edit'),
+                                                          ),
+                                                          PopupMenuItem(
+                                                            value: 'delete',
+                                                            child: Text(
+                                                              'Delete',
+                                                            ),
+                                                          ),
+                                                        ],
+                                                  )
+                                                  : null,
+                                        ),
+                                      );
+                                    },
+                                  ),
+                        ),
+                      ],
+                    )
+                    : Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          flex: 1,
+                          child: TableCalendar<Event>(
+                            firstDay: DateTime(2000),
+                            lastDay: DateTime(2100),
+                            focusedDay: _focusedDay,
+                            calendarFormat: _calFormat,
+                            headerStyle: const HeaderStyle(
+                              formatButtonShowsNext: false,
+                            ),
+                            availableCalendarFormats: {
+                              CalendarFormat.month: 'Month',
+                              CalendarFormat.twoWeeks: '2 weeks',
+                              CalendarFormat.week: 'Week',
+                            },
+                            // Tighter rows so the month fits better in landscape
+                            rowHeight: 36,
+                            selectedDayPredicate:
+                                (day) => isSameDay(_selectedDay, day),
+                            eventLoader: (day) {
+                              final key = DateTime(
+                                day.year,
+                                day.month,
+                                day.day,
+                              );
+                              return byDay[key] ?? const [];
+                            },
+                            calendarBuilders: CalendarBuilders<Event>(
+                              markerBuilder: (context, day, events) {
+                                if (events.isEmpty)
+                                  return const SizedBox.shrink();
+                                final color =
+                                    Theme.of(context).colorScheme.primary;
+                                final maxDots = 3;
+                                final count =
+                                    events.length > maxDots
+                                        ? maxDots
+                                        : events.length;
+                                return Align(
+                                  alignment: Alignment.bottomCenter,
+                                  child: Wrap(
+                                    alignment: WrapAlignment.center,
+                                    spacing: 2,
+                                    runSpacing: 2,
+                                    children: List.generate(
+                                      count,
+                                      (_) => Container(
+                                        width: 5,
+                                        height: 5,
+                                        decoration: BoxDecoration(
+                                          color: color,
+                                          shape: BoxShape.circle,
+                                        ),
+                                      ),
+                                    ),
                                   ),
                                 );
                               },
                             ),
-                  ),
-                ],
-              ),
-            ],
-          );
-              },
-            ),
-          ),
+                            onDaySelected: (selectedDay, focusedDay) {
+                              setState(() {
+                                _selectedDay = selectedDay;
+                                _focusedDay = focusedDay;
+                              });
+                            },
+                            onFormatChanged: (format) {
+                              setState(() => _calFormat = format);
+                            },
+                            onPageChanged: (focusedDay) {
+                              _focusedDay = focusedDay;
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          flex: 1,
+                          child:
+                              (byDay[selectedDayKey] == null ||
+                                      byDay[selectedDayKey]!.isEmpty)
+                                  ? const Center(
+                                    child: Text('No events this day'),
+                                  )
+                                  : ListView.builder(
+                                    itemCount: byDay[selectedDayKey]!.length,
+                                    itemBuilder: (context, idx) {
+                                      final event = byDay[selectedDayKey]![idx];
+                                      return InkWell(
+                                        onTap: () {
+                                          Navigator.of(context).push(
+                                            MaterialPageRoute(
+                                              builder:
+                                                  (_) => EventDetailsScreen(
+                                                    eventId: event.id!,
+                                                  ),
+                                            ),
+                                          );
+                                        },
+                                        child: EventWidget(
+                                          event: event,
+                                          trailing:
+                                              _isOrganiser
+                                                  ? PopupMenuButton<String>(
+                                                    onSelected: (value) async {
+                                                      if (!_online) {
+                                                        ScaffoldMessenger.maybeOf(
+                                                          context,
+                                                        )?.showSnackBar(
+                                                          const SnackBar(
+                                                            content: Text(
+                                                              'Offline: action unavailable',
+                                                            ),
+                                                          ),
+                                                        );
+                                                        return;
+                                                      }
+                                                      if (value == 'edit') {
+                                                        Navigator.of(
+                                                          context,
+                                                        ).push(
+                                                          MaterialPageRoute(
+                                                            builder:
+                                                                (_) =>
+                                                                    const EditEventScreen(),
+                                                            settings:
+                                                                RouteSettings(
+                                                                  arguments:
+                                                                      event,
+                                                                ),
+                                                          ),
+                                                        );
+                                                      } else if (value ==
+                                                          'delete') {
+                                                        await firebaseService
+                                                            .deleteEvent(
+                                                              event.id!,
+                                                            );
+                                                      }
+                                                    },
+                                                    itemBuilder:
+                                                        (ctx) => const [
+                                                          PopupMenuItem(
+                                                            value: 'edit',
+                                                            child: Text('Edit'),
+                                                          ),
+                                                          PopupMenuItem(
+                                                            value: 'delete',
+                                                            child: Text(
+                                                              'Delete',
+                                                            ),
+                                                          ),
+                                                        ],
+                                                  )
+                                                  : null,
+                                        ),
+                                      );
+                                    },
+                                  ),
+                        ),
+                      ],
+                    ),
+              ],
+            );
+          },
         ),
       ),
       floatingActionButton:

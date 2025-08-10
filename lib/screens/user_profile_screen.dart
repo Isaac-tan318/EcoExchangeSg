@@ -276,11 +276,45 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                   );
                 }
+                final isLandscape =
+                    MediaQuery.of(context).orientation == Orientation.landscape;
+
+                if (!isLandscape) {
+                  return SliverList(
+                    delegate: SliverChildBuilderDelegate(
+                      (context, index) => UserPostWidget(posts[index]),
+                      childCount: posts.length,
+                    ),
+                  );
+                }
+
+                // Landscape: two posts per row, top-aligned like Posts screen
+                final rowsCount = (posts.length + 1) ~/ 2;
                 return SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                    (context, index) => UserPostWidget(posts[index]),
-                    childCount: posts.length,
-                  ),
+                  delegate: SliverChildBuilderDelegate((context, rowIndex) {
+                    final leftIndex = rowIndex * 2;
+                    final rightIndex = leftIndex + 1;
+                    final hasRight = rightIndex < posts.length;
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8.0,
+                        vertical: 6.0,
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(child: UserPostWidget(posts[leftIndex])),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child:
+                                hasRight
+                                    ? UserPostWidget(posts[rightIndex])
+                                    : const SizedBox.shrink(),
+                          ),
+                        ],
+                      ),
+                    );
+                  }, childCount: rowsCount),
                 );
               },
             ),

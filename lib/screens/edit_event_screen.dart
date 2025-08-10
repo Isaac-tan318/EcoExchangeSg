@@ -47,6 +47,7 @@ class _EditEventScreenState extends State<EditEventScreen> {
     }
   }
 
+// start and end date and time picker
   Future<void> _pickStart() async {
     final d = await showDatePicker(
       context: context,
@@ -83,6 +84,7 @@ class _EditEventScreenState extends State<EditEventScreen> {
     });
   }
 
+// submit to firebase
   Future<void> _save() async {
     if (!_online) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -126,6 +128,7 @@ class _EditEventScreenState extends State<EditEventScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              // fields
               TextFormField(
                 controller: _titleCtrl,
                 decoration: const InputDecoration(labelText: 'Title'),
@@ -141,6 +144,7 @@ class _EditEventScreenState extends State<EditEventScreen> {
                     (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
               ),
               const SizedBox(height: 12),
+              // location
               TextFormField(
                 controller: _locCtrl,
                 decoration: const InputDecoration(labelText: 'Location'),
@@ -148,6 +152,7 @@ class _EditEventScreenState extends State<EditEventScreen> {
                     (v) => (v == null || v.trim().isEmpty) ? 'Required' : null,
               ),
               const SizedBox(height: 12),
+              // date and time selectors
               Row(
                 children: [
                   Expanded(
@@ -172,6 +177,7 @@ class _EditEventScreenState extends State<EditEventScreen> {
                 ],
               ),
               const SizedBox(height: 20),
+              // save button
               ElevatedButton.icon(
                 onPressed: _saving || !_online ? null : _save,
                 style: ElevatedButton.styleFrom(

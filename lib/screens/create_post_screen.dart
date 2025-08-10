@@ -73,6 +73,8 @@ class _CreatePostState extends State<CreatePost> {
     super.dispose();
   }
 
+  // submit post
+
   Future<void> _submit(BuildContext context) async {
     if (!_online) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -85,6 +87,7 @@ class _CreatePostState extends State<CreatePost> {
     final nav = Navigator.of(context);
     if (!_formKey.currentState!.validate()) return;
 
+    // loading state
     setState(() => _submitting = true);
     try {
       await firebaseService.createPost(
@@ -111,6 +114,7 @@ class _CreatePostState extends State<CreatePost> {
     }
   }
 
+  // image picker
   Future<void> _pickImage() async {
     try {
       final XFile? picked = await _picker.pickImage(

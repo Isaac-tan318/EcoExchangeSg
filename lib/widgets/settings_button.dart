@@ -24,7 +24,7 @@ class SettingsButton extends StatelessWidget {
         foregroundColor: scheme.onSurface,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
-          side: BorderSide(color: scheme.outline),
+          // side: BorderSide(color: scheme.outline),
         ),
         padding: const EdgeInsets.symmetric(vertical: 18),
         alignment: Alignment.centerLeft,

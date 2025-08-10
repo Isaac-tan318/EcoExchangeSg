@@ -520,7 +520,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                         mapController: _mapController,
                         options: MapOptions(
                           initialCenter:
-                          // middle of sg
+                              // middle of sg
                               _selectedLatLng ?? const LatLng(1.3521, 103.8198),
                           initialZoom: 11,
                           minZoom: _minZoom,
@@ -741,7 +741,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
                   ),
                 ),
 
-                // pick timing 
+              // pick timing
               const SizedBox(height: 12),
               Row(
                 children: [

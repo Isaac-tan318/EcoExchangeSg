@@ -430,7 +430,7 @@ class FirebaseService {
     DateTime? startDate,
     DateTime? endDate,
   }) {
-  Query<Map<String, dynamic>> queryRef = _postsCollection;
+    Query<Map<String, dynamic>> queryRef = _postsCollection;
     final bool hasAuthor = authorId != null;
     final bool hasRange = startDate != null || endDate != null;
     bool serverOrders = false; // whether we apply server-side orderBy
@@ -444,13 +444,13 @@ class FirebaseService {
     // Select with multiple filter criteria (same field):
     // Date range filters on the same field 'date_posted'.
     if (startDate != null) {
-  queryRef = queryRef.where(
+      queryRef = queryRef.where(
         'date_posted',
         isGreaterThanOrEqualTo: Timestamp.fromDate(startDate),
       );
     }
     if (endDate != null) {
-  queryRef = queryRef.where(
+      queryRef = queryRef.where(
         'date_posted',
         isLessThanOrEqualTo: Timestamp.fromDate(endDate),
       );
@@ -462,10 +462,10 @@ class FirebaseService {
     // If filtering by author only, skip server-side order to avoid composite index,
     // and we will sort on client instead.
     if (hasRange) {
-  queryRef = queryRef.orderBy('date_posted', descending: descending);
+      queryRef = queryRef.orderBy('date_posted', descending: descending);
       serverOrders = true;
     } else if (!hasAuthor) {
-  queryRef = queryRef.orderBy('date_posted', descending: descending);
+      queryRef = queryRef.orderBy('date_posted', descending: descending);
       serverOrders = true;
     } else {
       serverOrders = false;
@@ -478,9 +478,10 @@ class FirebaseService {
     // follow the link in the error to create the suggested index.
 
     return queryRef.snapshots().map((snapshot) {
-      final list = snapshot.docs
-          .map((doc) => _postFromMap({...doc.data(), 'id': doc.id}))
-          .toList();
+      final list =
+          snapshot.docs
+              .map((doc) => _postFromMap({...doc.data(), 'id': doc.id}))
+              .toList();
       if (!serverOrders) {
         list.sort(
           (a, b) =>
@@ -615,9 +616,10 @@ class FirebaseService {
       descending: !orderByStartAsc,
     );
     return queryRef.snapshots().map(
-      (snapshot) => snapshot.docs
-          .map((doc) => _eventFromMap({...doc.data(), 'id': doc.id}))
-          .toList(),
+      (snapshot) =>
+          snapshot.docs
+              .map((doc) => _eventFromMap({...doc.data(), 'id': doc.id}))
+              .toList(),
     );
   }
 

@@ -29,20 +29,38 @@ import 'package:flutter_application_1/services/tts_service.dart';
 import 'package:flutter_application_1/services/nets_service.dart';
 
 void main() async {
-  GetIt.instance.registerLazySingleton(() => NETSService());
+  final getIt = GetIt.instance;
+  getIt.allowReassignment = true;
+  if (!getIt.isRegistered<NETSService>()) {
+    getIt.registerLazySingleton<NETSService>(() => NETSService());
+  }
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   // Ensure web keeps users signed in across sessions; mobile persists by default
   if (kIsWeb) {
     await FirebaseAuth.instance.setPersistence(Persistence.LOCAL);
   }
-  GetIt.instance.registerLazySingleton(() => FirebaseService());
-  GetIt.instance.registerLazySingleton(() => NotificationService());
-  GetIt.instance.registerLazySingleton(() => ConnectivityService());
-  GetIt.instance.registerLazySingleton(() => TtsService());
+  if (!getIt.isRegistered<FirebaseService>()) {
+    getIt.registerLazySingleton<FirebaseService>(() => FirebaseService());
+  }
+  if (!getIt.isRegistered<NotificationService>()) {
+    getIt.registerLazySingleton<NotificationService>(
+      () => NotificationService(),
+    );
+  }
+  if (!getIt.isRegistered<ConnectivityService>()) {
+    getIt.registerLazySingleton<ConnectivityService>(
+      () => ConnectivityService(),
+    );
+  }
+  if (!getIt.isRegistered<TtsService>()) {
+    getIt.registerLazySingleton<TtsService>(() => TtsService());
+  }
   // Theme service for light/dark and seed color
-  GetIt.instance.registerSingleton<ThemeService>(ThemeService());
-  await GetIt.instance<ThemeService>().load();
+  if (!getIt.isRegistered<ThemeService>()) {
+    getIt.registerSingleton<ThemeService>(ThemeService());
+  }
+  await getIt<ThemeService>().load();
   // Start mobile local notifications for new events (no-op on web)
   await GetIt.instance<NotificationService>().startListeningForNewEvents();
   runApp(const MyApp());
@@ -71,10 +89,10 @@ class MyApp extends StatelessWidget {
             return MediaQuery(
               data: base.copyWith(textScaler: TextScaler.linear(themedScale)),
               child: Stack(
-              children: [
-                if (child != null) child,
-                const OfflineBannerOverlay(),
-              ],
+                children: [
+                  if (child != null) child,
+                  const OfflineBannerOverlay(),
+                ],
               ),
             );
           },

@@ -92,7 +92,10 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
     for (final gmailUri in gmailUris) {
       final canOpen = await canLaunchUrl(gmailUri);
       if (canOpen) {
-        final ok = await launchUrl(gmailUri, mode: LaunchMode.externalApplication);
+        final ok = await launchUrl(
+          gmailUri,
+          mode: LaunchMode.externalApplication,
+        );
         if (ok) return;
       }
     }

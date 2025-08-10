@@ -70,11 +70,12 @@ class _PostsScreenState extends State<PostsScreen> {
           width: double.infinity,
           padding: const EdgeInsets.fromLTRB(20, 15, 20, 0),
           child: ElevatedButton(
-            onPressed: !_online
-                ? null
-                : () {
-                    nav.pushNamed(CreatePost.routeName);
-                  },
+            onPressed:
+                !_online
+                    ? null
+                    : () {
+                      nav.pushNamed(CreatePost.routeName);
+                    },
 
             style: ElevatedButton.styleFrom(
               backgroundColor: scheme.primaryContainer,
@@ -141,7 +142,6 @@ class _PostsScreenState extends State<PostsScreen> {
               ),
 
               // filter by date
-
               DropdownMenu<String>(
                 width: 140,
                 menuStyle: MenuStyle(

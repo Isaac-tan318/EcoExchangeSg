@@ -37,9 +37,9 @@ class ProfileScreen extends StatelessWidget {
           return Center(child: Text('No user data available'));
         }
 
-  var user = snapshot.data!;
-  final username = (user.username?.toString() ?? 'Unknown User');
-  final bio = (user.bio?.toString() ?? '');
+        var user = snapshot.data!;
+        final username = (user.username?.toString() ?? 'Unknown User');
+        final bio = (user.bio?.toString() ?? '');
 
         return CustomScrollView(
           slivers: [

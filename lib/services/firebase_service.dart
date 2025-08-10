@@ -143,30 +143,28 @@ class FirebaseService {
         ),
       );
     }
-    return FirebaseFirestore.instance
-        .collection('users')
-        .doc(uid)
-        .snapshots()
-        .map((snapshot) {
-          if (snapshot.exists) {
-            final data = snapshot.data() as Map<String, dynamic>;
-            return UserModel.User(
-              username: (data['username'] ?? 'Unknown User'),
-              bio:
-                  (data['bio'] ??
-                      "Environmental advocate passionate in promoting sustainable living and conservation"),
-              posts: const [],
-            );
-          } else {
-            // Return default user if document doesn't exist
-            return UserModel.User(
-              username: 'Unknown User',
-              bio:
-                  "Environmental advocate passionate in promoting sustainable living and conservation",
-              posts: const [],
-            );
-          }
-        });
+    return FirebaseFirestore.instance.collection('users').doc(uid).snapshots().map((
+      snapshot,
+    ) {
+      if (snapshot.exists) {
+        final data = snapshot.data() as Map<String, dynamic>;
+        return UserModel.User(
+          username: (data['username'] ?? 'Unknown User'),
+          bio:
+              (data['bio'] ??
+                  "Environmental advocate passionate in promoting sustainable living and conservation"),
+          posts: const [],
+        );
+      } else {
+        // Return default user if document doesn't exist
+        return UserModel.User(
+          username: 'Unknown User',
+          bio:
+              "Environmental advocate passionate in promoting sustainable living and conservation",
+          posts: const [],
+        );
+      }
+    });
   }
 
   Future<void> loginWithPhoneNumber(
@@ -418,14 +416,14 @@ class FirebaseService {
     DateTime? startDate,
     DateTime? endDate,
   }) {
-  Query<Map<String, dynamic>> q = _postsCollection;
-  final bool hasAuthor = authorId != null;
-  final bool hasRange = startDate != null || endDate != null;
-  bool serverOrders = false; // whether we apply server-side orderBy
+    Query<Map<String, dynamic>> q = _postsCollection;
+    final bool hasAuthor = authorId != null;
+    final bool hasRange = startDate != null || endDate != null;
+    bool serverOrders = false; // whether we apply server-side orderBy
 
     // Select with filter criteria (other than identifier):
     // Filter posts by authorId if provided.
-  if (authorId != null) {
+    if (authorId != null) {
       q = q.where('authorId', isEqualTo: authorId);
     }
 
@@ -469,9 +467,12 @@ class FirebaseService {
       final list =
           s.docs.map((d) => _postFromMap({...d.data(), 'id': d.id})).toList();
       if (!serverOrders) {
-        list.sort((a, b) => descending
-            ? b.date_posted.compareTo(a.date_posted)
-            : a.date_posted.compareTo(b.date_posted));
+        list.sort(
+          (a, b) =>
+              descending
+                  ? b.date_posted.compareTo(a.date_posted)
+                  : a.date_posted.compareTo(b.date_posted),
+        );
       }
       return list;
     });

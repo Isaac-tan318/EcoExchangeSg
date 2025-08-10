@@ -63,7 +63,10 @@ class MyApp extends StatelessWidget {
           themeMode: themeService.mode,
           builder: (context, child) {
             return Stack(
-              children: [if (child != null) child, const OfflineBannerOverlay()],
+              children: [
+                if (child != null) child,
+                const OfflineBannerOverlay(),
+              ],
             );
           },
           home: const AuthGate(),
@@ -76,7 +79,8 @@ class MyApp extends StatelessWidget {
             EditEventScreen.routeName: (_) => const EditEventScreen(),
             ForgotPasswordScreen.routeName: (_) => ForgotPasswordScreen(),
             OrganisationLoginScreen.routeName: (_) => OrganisationLoginScreen(),
-            OrganisationSignupScreen.routeName: (_) => OrganisationSignupScreen(),
+            OrganisationSignupScreen.routeName:
+                (_) => OrganisationSignupScreen(),
             AddNumberScreen.routeName: (_) => AddNumberScreen(),
             PhoneNumberLoginScreen.routeName: (_) => PhoneNumberLoginScreen(),
             EditInformationScreen.routeName: (_) => EditInformationScreen(),
@@ -85,16 +89,18 @@ class MyApp extends StatelessWidget {
             if (settings.name == EditPost.routeName) {
               final args = settings.arguments as Map<String, dynamic>;
               return MaterialPageRoute(
-                builder: (_) => EditPost(
-                  postId: args['postId'] as String,
-                  initial: args['post'] as Post,
-                ),
+                builder:
+                    (_) => EditPost(
+                      postId: args['postId'] as String,
+                      initial: args['post'] as Post,
+                    ),
               );
             }
             if (settings.name == PostDetailsScreen.routeName) {
               final args = settings.arguments as Map<String, dynamic>;
               return MaterialPageRoute(
-                builder: (_) => PostDetailsScreen(postId: args['postId'] as String),
+                builder:
+                    (_) => PostDetailsScreen(postId: args['postId'] as String),
               );
             }
             return null;

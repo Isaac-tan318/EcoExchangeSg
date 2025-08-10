@@ -101,10 +101,28 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
 
   String _relativeTime(DateTime date) {
     final now = DateTime.now();
-    final diff = now.difference(date);
-    if (diff.inMinutes < 1) return 'just now';
-    if (diff.inHours < 1) return '${diff.inMinutes} min ago';
-    return '${diff.inHours} hr. ago';
+    var diff = now.difference(date);
+    if (diff.isNegative) diff = Duration.zero;
+    if (diff.inSeconds < 60) return 'just now';
+    if (diff.inMinutes < 60) return '${diff.inMinutes} min ago';
+    if (diff.inHours < 24) {
+      final h = diff.inHours;
+      return '$h ${h == 1 ? 'hour' : 'hours'} ago';
+    }
+    if (diff.inDays < 7) {
+      final d = diff.inDays;
+      return '$d ${d == 1 ? 'day' : 'days'} ago';
+    }
+    if (diff.inDays < 30) {
+      final w = (diff.inDays / 7).floor();
+      return '$w ${w == 1 ? 'week' : 'weeks'} ago';
+    }
+    if (diff.inDays < 365) {
+      final m = (diff.inDays / 30).floor();
+      return '$m ${m == 1 ? 'month' : 'months'} ago';
+    }
+    final y = (diff.inDays / 365).floor();
+    return '$y ${y == 1 ? 'year' : 'years'} ago';
   }
 
   @override

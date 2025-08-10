@@ -47,9 +47,9 @@ class _LoginScreenState extends State<LoginScreen> {
             .promptForPermissionsIfFirstLogin();
         if (!mounted) return;
         // Show feedback before navigating away to avoid using a disposed context
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Login successful!")),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text("Login successful!")));
         Navigator.of(context).pushReplacementNamed(HomeScreen.routeName);
       } catch (error) {
         String errorMessage = "Login failed, invalid email or password.";
@@ -59,8 +59,9 @@ class _LoginScreenState extends State<LoginScreen> {
           errorMessage = "Make sure you login from the correct portal";
         }
         if (mounted) {
-          ScaffoldMessenger.of(context)
-              .showSnackBar(SnackBar(content: Text(errorMessage)));
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text(errorMessage)));
         }
       } finally {
         if (mounted) {
@@ -222,9 +223,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             await GetIt.instance<NotificationService>()
                                 .promptForPermissionsIfFirstLogin();
                             if (mounted) {
-                              nav.pushReplacementNamed(
-                                HomeScreen.routeName,
-                              );
+                              nav.pushReplacementNamed(HomeScreen.routeName);
                             }
                           } else {
                             if (mounted) {

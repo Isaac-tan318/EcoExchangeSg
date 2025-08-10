@@ -31,84 +31,89 @@ class SettingsScreen extends StatelessWidget {
           children: [
             const SizedBox(height: 24),
             // Appearance section
-            Builder(builder: (context) {
-              final themeSvc = GetIt.instance<ThemeService>();
-              final seedChoices = <Color>[
-                const Color(0xFF3D8259), // green
-                const Color(0xFF0B57D0), // blue
-                const Color(0xFF9333EA), // purple
-                const Color(0xFFEA580C), // orange
-                const Color(0xFF047857), // teal
-                const Color(0xFFB91C1C), // red
-              ];
-              return Card(
-                color: scheme.surfaceContainerHighest,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                child: Padding(
-                  padding: const EdgeInsets.all(12.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Appearance', style: textTheme.titleMedium),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Flexible(
-                            child: RadioListTile<ThemeMode>(
-                              contentPadding: EdgeInsets.zero,
-                              title: const Text('Light'),
-                              value: ThemeMode.light,
-                              groupValue: themeSvc.mode,
-                              onChanged: (v) {
-                                if (v != null) themeSvc.setThemeMode(v);
-                              },
+            Builder(
+              builder: (context) {
+                final themeSvc = GetIt.instance<ThemeService>();
+                final seedChoices = <Color>[
+                  const Color(0xFF3D8259), // green
+                  const Color(0xFF0B57D0), // blue
+                  const Color(0xFF9333EA), // purple
+                  const Color(0xFFEA580C), // orange
+                  const Color(0xFF047857), // teal
+                  const Color(0xFFB91C1C), // red
+                ];
+                return Card(
+                  color: scheme.surfaceContainerHighest,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(12.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Appearance', style: textTheme.titleMedium),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Flexible(
+                              child: RadioListTile<ThemeMode>(
+                                contentPadding: EdgeInsets.zero,
+                                title: const Text('Light'),
+                                value: ThemeMode.light,
+                                groupValue: themeSvc.mode,
+                                onChanged: (v) {
+                                  if (v != null) themeSvc.setThemeMode(v);
+                                },
+                              ),
                             ),
-                          ),
-                          Flexible(
-                            child: RadioListTile<ThemeMode>(
-                              contentPadding: EdgeInsets.zero,
-                              title: const Text('Dark'),
-                              value: ThemeMode.dark,
-                              groupValue: themeSvc.mode,
-                              onChanged: (v) {
-                                if (v != null) themeSvc.setThemeMode(v);
-                              },
+                            Flexible(
+                              child: RadioListTile<ThemeMode>(
+                                contentPadding: EdgeInsets.zero,
+                                title: const Text('Dark'),
+                                value: ThemeMode.dark,
+                                groupValue: themeSvc.mode,
+                                onChanged: (v) {
+                                  if (v != null) themeSvc.setThemeMode(v);
+                                },
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Text('Accent color', style: textTheme.titleSmall),
-                      const SizedBox(height: 8),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: [
-                          for (final c in seedChoices)
-                            GestureDetector(
-                              onTap: () => themeSvc.setSeedColor(c),
-                              child: Container(
-                                width: 36,
-                                height: 36,
-                                decoration: BoxDecoration(
-                                  color: c,
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
-                                    color: themeSvc.seedColor.value == c.value
-                                        ? scheme.onSurface
-                                        : Colors.transparent,
-                                    width: 2,
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Text('Accent color', style: textTheme.titleSmall),
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            for (final c in seedChoices)
+                              GestureDetector(
+                                onTap: () => themeSvc.setSeedColor(c),
+                                child: Container(
+                                  width: 36,
+                                  height: 36,
+                                  decoration: BoxDecoration(
+                                    color: c,
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color:
+                                          themeSvc.seedColor.value == c.value
+                                              ? scheme.onSurface
+                                              : Colors.transparent,
+                                      width: 2,
+                                    ),
                                   ),
                                 ),
                               ),
-                            ),
-                        ],
-                      ),
-                    ],
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              );
-            }),
+                );
+              },
+            ),
             const SizedBox(height: 12),
             SettingsButton(
               icon: Icons.edit,
@@ -285,8 +290,9 @@ class SettingsScreen extends StatelessWidget {
                               await themeSvc.resetToDefaults();
                               await firebaseService.logOut();
                               if (!context.mounted) return;
-                              Navigator.of(context)
-                                  .pushReplacementNamed(LoginScreen.routeName);
+                              Navigator.of(
+                                context,
+                              ).pushReplacementNamed(LoginScreen.routeName);
                               ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
                                   content: Text('Logged out successfully.'),

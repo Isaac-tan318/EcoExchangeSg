@@ -27,8 +27,8 @@ class _OrganisationLoginScreenState extends State<OrganisationLoginScreen> {
 
   var form = GlobalKey<FormState>();
 
-// function called when organisation presses login button
-// validates fields and calls firebase
+  // function called when organisation presses login button
+  // validates fields and calls firebase
   void login(context) async {
     var isValid = form.currentState!.validate();
 
@@ -136,35 +136,37 @@ class _OrganisationLoginScreenState extends State<OrganisationLoginScreen> {
                   SizedBox(height: 15),
 
                   ElevatedButton(
-                    onPressed: _loading
-                        ? null
-                        : () {
-                            if (form.currentState!.validate()) {
-                              login(context);
-                            }
-                          },
+                    onPressed:
+                        _loading
+                            ? null
+                            : () {
+                              if (form.currentState!.validate()) {
+                                login(context);
+                              }
+                            },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: scheme.tertiaryContainer,
                       foregroundColor: scheme.onTertiaryContainer,
                       textStyle: TextStyle(fontWeight: FontWeight.w600),
                     ),
-                    child: _loading
-                        ? SizedBox(
-                            height: 20,
-                            width: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                scheme.onTertiaryContainer,
+                    child:
+                        _loading
+                            ? SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  scheme.onTertiaryContainer,
+                                ),
+                              ),
+                            )
+                            : Text(
+                              "Login",
+                              style: TextStyle(
+                                fontSize: texttheme.bodyLarge!.fontSize,
                               ),
                             ),
-                          )
-                        : Text(
-                            "Login",
-                            style: TextStyle(
-                              fontSize: texttheme.bodyLarge!.fontSize,
-                            ),
-                          ),
                   ),
                 ],
               ),
@@ -173,38 +175,45 @@ class _OrganisationLoginScreenState extends State<OrganisationLoginScreen> {
 
             // Login with google
             ElevatedButton(
-              onPressed: _loading
-                  ? null
-                  : () async {
-                try {
-                  setState(() => _loading = true);
-                  // Adds role if user is signing up with google
-                  var result = await firebaseService.signInWithGoogle(
-                    'organisation',
-                  );
-                  debugPrint("Google login result: $result");
-                  if (result.user != null) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text("Google login successful!")),
-                    );
-                    nav.pushReplacementNamed(HomeScreen.routeName);
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text("Google login failed: No user returned."),
-                      ),
-                    );
-                  }
-                } catch (error) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text("Google login failed: ${error.toString()}"),
-                    ),
-                  );
-                } finally {
-                  if (mounted) setState(() => _loading = false);
-                }
-              },
+              onPressed:
+                  _loading
+                      ? null
+                      : () async {
+                        try {
+                          setState(() => _loading = true);
+                          // Adds role if user is signing up with google
+                          var result = await firebaseService.signInWithGoogle(
+                            'organisation',
+                          );
+                          debugPrint("Google login result: $result");
+                          if (result.user != null) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text("Google login successful!"),
+                              ),
+                            );
+                            nav.pushReplacementNamed(HomeScreen.routeName);
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  "Google login failed: No user returned.",
+                                ),
+                              ),
+                            );
+                          }
+                        } catch (error) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                "Google login failed: ${error.toString()}",
+                              ),
+                            ),
+                          );
+                        } finally {
+                          if (mounted) setState(() => _loading = false);
+                        }
+                      },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.white,
                 shape: RoundedRectangleBorder(

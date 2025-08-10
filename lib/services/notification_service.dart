@@ -72,9 +72,9 @@ class NotificationService {
       for (final change in snapshot.docChanges) {
         if (change.type == DocumentChangeType.added) {
           final data = change.doc.data();
-      final title = (data?['title']?.toString() ?? 'Untitled');
-      final bodyMsg =
-        'A new event has been posted! Check out ($title) on EcoExchangeSg now!';
+          final title = (data?['title']?.toString() ?? 'Untitled');
+          final bodyMsg =
+              'A new event has been posted! Check out ($title) on EcoExchangeSg now!';
           if (change.doc.id != lastId) {
             if (kIsWeb) {
               // For Web: print to console instead of using local notifications

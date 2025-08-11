@@ -30,7 +30,7 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
   @override
   void initState() {
     super.initState();
-  // subscribe to connectivity updates
+    // subscribe to connectivity updates
     _connSub = GetIt.instance<ConnectivityService>().isOnline$.listen((
       isOnline,
     ) {
@@ -38,13 +38,13 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
       setState(() => _online = isOnline);
     });
 
-  // get shared tts service
+    // get shared tts service
     _tts = GetIt.instance<TtsService>();
   }
 
   @override
   void dispose() {
-  // stop speech and cancel subscription
+    // stop speech and cancel subscription
     _tts?.stop();
     _connSub?.cancel();
     super.dispose();
@@ -115,38 +115,40 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
     }
 
     Future<bool> _openDefault() async {
-      final mailtoUri = Uri.parse('mailto:$toEmail?subject=$subject&body=$body');
+      final mailtoUri = Uri.parse(
+        'mailto:$toEmail?subject=$subject&body=$body',
+      );
       return launchUrl(mailtoUri, mode: LaunchMode.externalApplication);
     }
 
-  // present options to pick an email app
+    // present options to pick an email app
     if (!mounted) return;
     final choice = await showModalBottomSheet<String>(
       context: context,
-  builder: (ctx) {
+      builder: (ctx) {
         return SafeArea(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               ListTile(
                 leading: const Icon(Icons.alternate_email),
-        title: const Text('Gmail'),
+                title: const Text('Gmail'),
                 onTap: () => Navigator.pop(ctx, 'gmail'),
               ),
               ListTile(
                 leading: const Icon(Icons.mail_outline),
-        title: const Text('Outlook'),
+                title: const Text('Outlook'),
                 onTap: () => Navigator.pop(ctx, 'outlook'),
               ),
               ListTile(
                 leading: const Icon(Icons.mark_email_read_outlined),
-        title: const Text('Yahoo Mail'),
+                title: const Text('Yahoo Mail'),
                 onTap: () => Navigator.pop(ctx, 'yahoo'),
               ),
               const Divider(height: 1),
               ListTile(
                 leading: const Icon(Icons.email),
-        title: const Text('Default Email (chooser)'),
+                title: const Text('Default Email (chooser)'),
                 onTap: () => Navigator.pop(ctx, 'default'),
               ),
               const SizedBox(height: 8),
@@ -162,20 +164,20 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
     if (!ok && choice == 'outlook') ok = await _openOutlook();
     if (!ok && choice == 'yahoo') ok = await _openYahoo();
     if (!ok && choice == 'default') ok = await _openDefault();
-  // fallback chain if chosen app isn't available
+    // fallback chain if chosen app isn't available
     if (!ok) ok = await _openDefault();
     if (!ok) ok = await _openGmail();
     if (!ok) ok = await _openOutlook();
     if (!ok) ok = await _openYahoo();
 
     if (!ok && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-    const SnackBar(content: Text('No email app available.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('No email app available.')));
     }
   }
 
-// get relative time string
+  // get relative time string
   String _relativeTime(DateTime date) {
     final now = DateTime.now();
     var diff = now.difference(date);
@@ -214,19 +216,19 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
         final appBar = AppBar(
           backgroundColor: scheme.primary,
           foregroundColor: scheme.onPrimary,
-      title: const Text('Post Details'),
+          title: const Text('Post Details'),
           actions: [
             if (snapshot.connectionState == ConnectionState.done &&
                 snapshot.data != null)
               IconButton(
-        tooltip: 'Report',
+                tooltip: 'Report',
                 icon: const Icon(Icons.flag_outlined),
                 onPressed: () => _reportPost(snapshot.data!),
               ),
             if (snapshot.connectionState == ConnectionState.done &&
                 snapshot.data != null)
               IconButton(
-        tooltip: 'Listen',
+                tooltip: 'Listen',
                 icon: const Icon(Icons.volume_up_outlined),
                 onPressed: () {
                   final p = snapshot.data!;
@@ -239,7 +241,7 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
           ],
         );
 
-// show loading state
+        // show loading state
         if (snapshot.connectionState == ConnectionState.waiting) {
           return Scaffold(
             appBar: appBar,
@@ -277,11 +279,12 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
           );
         }
 
-  // header segment without image, description is placed differently
-  // in portrait vs landscape to preserve original order
+        // header segment without image, description is placed differently
+        // in portrait vs landscape to preserve original order
         final List<Widget> headerWidgets = [
           Align(
             alignment: Alignment.centerRight,
+            // nets qr button
             child: FilledButton.icon(
               onPressed: () {
                 showModalBottomSheet(
@@ -321,7 +324,9 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
                             if (mounted) Navigator.of(ctx).pop();
                             if (!mounted) return;
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Thanks for your award!')),
+                              const SnackBar(
+                                content: Text('Thanks for your award!'),
+                              ),
                             );
                           } catch (e) {
                             if (!mounted) return;
@@ -350,7 +355,17 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                ...instructions.children,
+                                Text(
+                                  'Send an award',
+                                  style: textTheme.titleLarge,
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Scan the NETS QR to tip the organiser. Once paid, tap Register to confirm.',
+                                  style: textTheme.bodyMedium?.copyWith(
+                                    color: scheme.onSurfaceVariant,
+                                  ),
+                                ),
                                 const SizedBox(height: 12),
                                 Image.asset(
                                   'assets/images/netsQrInfo.png',
@@ -509,7 +524,10 @@ class _PostDetailsScreenState extends State<PostDetailsScreen> {
                               }
                             },
                     icon: Icon(Icons.delete, color: scheme.error),
-                    label: Text('Delete', style: TextStyle(color: scheme.error)),
+                    label: Text(
+                      'Delete',
+                      style: TextStyle(color: scheme.error),
+                    ),
                   ),
               ],
             ],

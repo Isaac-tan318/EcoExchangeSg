@@ -34,7 +34,7 @@ class FirebaseService {
   }
 
   Future<UserCredential> login(email, password, role) async {
-  // login with email and password and check role
+    // login with email and password and check role
     var userCredentials = await FirebaseAuth.instance
         .signInWithEmailAndPassword(email: email, password: password);
 
@@ -57,7 +57,7 @@ class FirebaseService {
   }
 
   Future<UserCredential> signInWithGoogle(String role) async {
-  // sign in with google and create user if its first login
+    // sign in with google and create user if its first login
     UserCredential userCredential;
     if (kIsWeb) {
       GoogleAuthProvider googleProvider = GoogleAuthProvider();
@@ -103,18 +103,18 @@ class FirebaseService {
   }
 
   Stream<User?> getAuthUser() {
-  // stream auth state changes for the current user
+    // stream auth state changes for the current user
     return FirebaseAuth.instance.authStateChanges();
   }
 
   User? getCurrentUser() {
-  // get the current authenticated user or null
+    // get the current authenticated user or null
     return FirebaseAuth.instance.currentUser;
   }
 
   // Role helpers
   Future<String?> _getCurrentUserRole() async {
-  // get the role of the current user from firestore
+    // get the role of the current user from firestore
     final user = getCurrentUser();
     if (user == null) return null;
     try {
@@ -130,7 +130,7 @@ class FirebaseService {
   }
 
   Future<bool> isCurrentUserOrganiser() async {
-  // check if the current user is an organiser
+    // check if the current user is an organiser
     final role = await _getCurrentUserRole();
     return role == 'organiser' || role == 'organizer';
   }
@@ -187,7 +187,7 @@ class FirebaseService {
     Future<String> Function(BuildContext context) getOtpFromUser,
     BuildContext context,
   ) async {
-  // login using phone number and otp 
+    // login using phone number and otp
     FirebaseAuth auth = FirebaseAuth.instance;
 
     if (kIsWeb) {
@@ -267,7 +267,7 @@ class FirebaseService {
           throw Exception("Failed to link phone number: ${e.message}");
         }
       }
-      // verifyPhoneNumber method is used on mobile 
+      // verifyPhoneNumber method is used on mobile
     } else {
       await auth.verifyPhoneNumber(
         phoneNumber: phoneNumber,
@@ -308,23 +308,23 @@ class FirebaseService {
   }
 
   Future<void> logOut() {
-  // sign out the current user
+    // sign out the current user
     return FirebaseAuth.instance.signOut();
   }
 
   Future<void> forgotPassword(String email) {
-  // send a password reset email
+    // send a password reset email
     return FirebaseAuth.instance.sendPasswordResetEmail(email: email);
   }
 
   Future<void> changePassword(String newPassword) {
-  // update the current user's password
+    // update the current user's password
     User? user = FirebaseAuth.instance.currentUser;
     return user!.updatePassword(newPassword);
   }
 
   Future<void> deleteAccount() async {
-  // delete the current user and their firestore profile
+    // delete the current user and their firestore profile
     User? user = FirebaseAuth.instance.currentUser;
     if (user != null) {
       await FirebaseFirestore.instance
@@ -336,7 +336,7 @@ class FirebaseService {
   }
 
   Future<void> updateEmail(String newEmail) async {
-  // update the user's email in auth and sync to firestore
+    // update the user's email in auth and sync to firestore
     User? user = FirebaseAuth.instance.currentUser;
     if (user != null) {
       await user.verifyBeforeUpdateEmail(newEmail);
@@ -508,7 +508,11 @@ class FirebaseService {
   }
 
   // Update an existing post by ID
-  Future<void> updatePost(String id, Post post, {bool removeImage = false}) async {
+  Future<void> updatePost(
+    String id,
+    Post post, {
+    bool removeImage = false,
+  }) async {
     // Build update map and normalize types
     final data = <String, dynamic>{
       'title': (post.title is String) ? post.title : post.title?.toString(),

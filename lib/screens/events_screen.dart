@@ -33,7 +33,7 @@ class _EventsScreenState extends State<EventsScreen>
   @override
   void initState() {
     super.initState();
-  // set up tabs, events stream, and connectivity subscription
+    // set up tabs, events stream, and connectivity subscription
     _tabController = TabController(length: 2, vsync: this);
     _eventsStream = firebaseService.getEventsAsStream();
     _initRole();
@@ -44,7 +44,7 @@ class _EventsScreenState extends State<EventsScreen>
   }
 
   Future<void> _initRole() async {
-  // check if current user is an organiser to enable create/edit
+    // check if current user is an organiser to enable create/edit
     final isOrg = await firebaseService.isCurrentUserOrganiser();
     if (!mounted) return;
     // to show create event button to organisations
@@ -65,7 +65,7 @@ class _EventsScreenState extends State<EventsScreen>
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(48),
         child: SafeArea(
-      // top tabs for list and calendar views
+          // top tabs for list and calendar views
           child: TabBar(
             controller: _tabController,
             labelColor: scheme.primary,
@@ -78,7 +78,7 @@ class _EventsScreenState extends State<EventsScreen>
       ),
       body: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 8.0),
-    // stream events and render tabs
+        // stream events and render tabs
         child: StreamBuilder<List<Event>>(
           stream: _eventsStream,
           initialData: [],
@@ -101,7 +101,7 @@ class _EventsScreenState extends State<EventsScreen>
             }
 
             // make it the current day if nothing is chosen if not make it the selected day
-      // compute the key for the selected day in the calendar map
+            // compute the key for the selected day in the calendar map
             final selectedDayKey =
                 _selectedDay == null
                     ? DateTime(
@@ -119,14 +119,14 @@ class _EventsScreenState extends State<EventsScreen>
             return TabBarView(
               controller: _tabController,
               children: [
-        // portrait uses single column list, landscape uses 2-column rows
+                // portrait uses single column list, landscape uses 2-column rows
                 Builder(
                   builder: (context) {
-          // single event tile with optional organiser menu
+                    // single event tile with optional organiser menu
                     Widget buildEventTile(Event event) {
                       return InkWell(
                         onTap: () {
-              // open event details
+                          // open event details
                           Navigator.of(context).push(
                             MaterialPageRoute(
                               builder:
@@ -141,7 +141,7 @@ class _EventsScreenState extends State<EventsScreen>
                               _isOrganiser
                                   ? PopupMenuButton<String>(
                                     onSelected: (value) async {
-                    // guard actions when offline
+                                      // guard actions when offline
                                       if (!_online) {
                                         ScaffoldMessenger.maybeOf(
                                           context,
@@ -188,7 +188,7 @@ class _EventsScreenState extends State<EventsScreen>
                     }
 
                     if (!isLandscape) {
-            // original single list for potrait
+                      // original single list for potrait
                       return ListView.builder(
                         itemCount: (events.isEmpty ? 1 : events.length) + 1,
                         itemBuilder: (context, index) {
@@ -605,7 +605,7 @@ class _EventsScreenState extends State<EventsScreen>
           },
         ),
       ),
-      // show create event button for organisers 
+      // show create event button for organisers
       floatingActionButton:
           (!_loadingRole && _isOrganiser)
               ? FloatingActionButton(

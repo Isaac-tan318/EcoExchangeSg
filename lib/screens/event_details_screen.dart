@@ -36,21 +36,21 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
   @override
   void initState() {
     super.initState();
-  // listen to connectivity to handle offline mode
+    // listen to connectivity to handle offline mode
     _connSub = GetIt.instance<ConnectivityService>().isOnline$.listen((
       isOnline,
     ) {
       if (!mounted) return;
       setState(() => _online = isOnline);
     });
-  // get shared tts instance
+    // get shared tts instance
     _tts = GetIt.instance<TtsService>();
-  // check if current user can modify this event
+    // check if current user can modify this event
     _initRole();
   }
 
   Future<void> _initRole() async {
-  // check if current user is an organiser
+    // check if current user is an organiser
     final isOrg =
         await GetIt.instance<FirebaseService>().isCurrentUserOrganiser();
     if (!mounted) return;
@@ -59,7 +59,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
 
   @override
   void dispose() {
-  // stop any ongoing speech and clean up subscriptions
+    // stop any ongoing speech and clean up subscriptions
     _tts?.stop();
     _connSub?.cancel();
     super.dispose();
@@ -69,7 +69,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
   String _fmtDateTime(DateTime dt) => DateFormats.dMonthYHm(dt);
 
   Future<void> _reportEvent(Event e) async {
-  // build email subject and body to report events
+    // build email subject and body to report events
     final subject = Uri.encodeComponent('[Report] Event ${e.title ?? ''}');
     final body = Uri.encodeComponent(
       'Event ID: ${e.id ?? widget.eventId}\n'
@@ -79,7 +79,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
     );
     const toEmail = 'ecohubsg1@gmail.com';
 
-  // on web use gmail compose
+    // on web use gmail compose
     if (kIsWeb) {
       final gmailUrl = Uri.parse(
         'https://mail.google.com/mail/?view=cm&fs=1&to=$toEmail&su=$subject&body=$body',
@@ -96,7 +96,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
       return;
     }
 
-  // deeplink for mobile
+    // deeplink for mobile
     final gmailUris = <Uri>[
       Uri.parse('gmail://co?to=$toEmail&subject=$subject&body=$body'),
       Uri.parse('googlegmail://co?to=$toEmail&subject=$subject&body=$body'),
@@ -111,7 +111,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
         if (ok) return;
       }
     }
-  // fallback to default mail app
+    // fallback to default mail app
     final mailtoUri = Uri.parse('mailto:$toEmail?subject=$subject&body=$body');
     final ok = await launchUrl(mailtoUri, mode: LaunchMode.externalApplication);
     if (!ok && mounted) {
@@ -123,13 +123,13 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
 
   @override
   Widget build(BuildContext context) {
-  // theme and services
+    // theme and services
     final scheme = Theme.of(context).colorScheme;
     final texttheme = Theme.of(context).textTheme;
     final svc = GetIt.instance<FirebaseService>();
 
-  // load the event for details
-  return FutureBuilder<Event?>(
+    // load the event for details
+    return FutureBuilder<Event?>(
       future: svc.getEvent(widget.eventId),
       builder: (context, snapshot) {
         final appBar = AppBar(
@@ -150,7 +150,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                 tooltip: 'Listen',
                 icon: const Icon(Icons.volume_up_outlined),
                 onPressed: () {
-          // speak the title and description
+                  // speak the title and description
                   final eventData = snapshot.data!;
                   final title = (eventData.title?.toString().trim() ?? '');
                   final desc = (eventData.description?.toString().trim() ?? '');
@@ -161,21 +161,21 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
           ],
         );
 
-    // loading state
+        // loading state
         if (snapshot.connectionState == ConnectionState.waiting) {
           return Scaffold(
             appBar: appBar,
             body: const Center(child: CircularProgressIndicator()),
           );
         }
-    // error state
+        // error state
         if (snapshot.hasError) {
           return Scaffold(
             appBar: appBar,
             body: Center(child: Text('Failed to load: ${snapshot.error}')),
           );
         }
-    // not found state
+        // not found state
         final event = snapshot.data;
         if (event == null) {
           return Scaffold(
@@ -184,15 +184,15 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
           );
         }
 
-    // make sure have permission to edit/delete
+        // make sure have permission to edit/delete
         final currentUid = svc.getCurrentUser()?.uid;
         final canModify = _isOrganiser && (event.authorId == currentUid);
 
-    // layout orientation
+        // layout orientation
         final isLandscape =
             MediaQuery.of(context).orientation == Orientation.landscape;
 
-    // event image if present
+        // event image if present
         Widget imageWidget = const SizedBox.shrink();
         if ((event.imageBase64 ?? '').isNotEmpty) {
           imageWidget = ClipRRect(
@@ -207,7 +207,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
           );
         }
 
-    // right-side details column
+        // right-side details column
         Widget detailsColumn = Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -215,7 +215,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
               alignment: Alignment.centerRight,
               child: FilledButton.icon(
                 onPressed: () {
-          // open award modal with nets qr
+                  // open award modal with nets qr
                   showModalBottomSheet(
                     context: context,
                     showDragHandle: true,
@@ -226,7 +226,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                       final isLandscape =
                           MediaQuery.of(ctx).orientation ==
                           Orientation.landscape;
-            // short instructions and qr component
+                      // short instructions and qr component
                       final instructions = Column(
                         mainAxisSize: MainAxisSize.min,
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -242,7 +242,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                           const SizedBox(height: 12),
                           NETSQR((BuildContext c) async {
                             try {
-                // update awards for event and organiser
+                              // update awards for event and organiser
                               await GetIt.instance<FirebaseService>()
                                   .incrementEventAwards(widget.eventId);
                               // Also increment the organiser's user awards
@@ -270,7 +270,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                           }),
                         ],
                       );
-            // adapt layout for landscape
+                      // adapt layout for landscape
                       Widget content;
                       if (isLandscape) {
                         content = Row(
@@ -287,7 +287,17 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  ...instructions.children,
+                                  Text(
+                                    'Send an award',
+                                    style: textTheme.titleLarge,
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    'Scan the NETS QR to tip the organiser. Once paid, tap Register to confirm.',
+                                    style: textTheme.bodyMedium?.copyWith(
+                                      color: scheme.onSurfaceVariant,
+                                    ),
+                                  ),
                                   const SizedBox(height: 12),
                                   Image.asset(
                                     'assets/images/netsQrInfo.png',
@@ -314,7 +324,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
               ),
             ),
             const SizedBox(height: 8),
-      // event title
+            // event title
             Text(
               event.title?.toString() ?? '',
               style: TextStyle(
@@ -323,7 +333,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
               ),
             ),
             const SizedBox(height: 8),
-      // edit and delete actions for organisers
+            // edit and delete actions for organisers
             if (canModify)
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
@@ -436,7 +446,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                 ],
               ),
             if (canModify) const SizedBox(height: 8),
-      // date time chip
+            // date time chip
             if (event.startDateTime != null)
               Container(
                 padding: const EdgeInsets.symmetric(
@@ -458,7 +468,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                 ),
               ),
             const SizedBox(height: 16),
-      // location row
+            // location row
             if ((event.location ?? '').trim().isNotEmpty) ...[
               Row(
                 children: [
@@ -474,7 +484,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
               ),
               const SizedBox(height: 12),
             ],
-      // description text
+            // description text
             Text(
               event.description?.toString() ?? '',
               style: TextStyle(fontSize: texttheme.bodyLarge!.fontSize),
@@ -487,8 +497,8 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
           body: SingleChildScrollView(
             padding: const EdgeInsets.all(16),
             child:
-        // adapt layout for landscape and portrait
-        isLandscape
+                // adapt layout for landscape and portrait
+                isLandscape
                     ? Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [

@@ -135,24 +135,25 @@ class _EditEventScreenState extends State<EditEventScreen> {
     }
     final source = await showModalBottomSheet<ImageSource>(
       context: context,
-      builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.photo_camera),
-              title: const Text('Camera'),
-              onTap: () => Navigator.pop(ctx, ImageSource.camera),
+      builder:
+          (ctx) => SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.photo_camera),
+                  title: const Text('Camera'),
+                  onTap: () => Navigator.pop(ctx, ImageSource.camera),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.photo_library),
+                  title: const Text('Gallery'),
+                  onTap: () => Navigator.pop(ctx, ImageSource.gallery),
+                ),
+                const SizedBox(height: 8),
+              ],
             ),
-            ListTile(
-              leading: const Icon(Icons.photo_library),
-              title: const Text('Gallery'),
-              onTap: () => Navigator.pop(ctx, ImageSource.gallery),
-            ),
-            const SizedBox(height: 8),
-          ],
-        ),
-      ),
+          ),
     );
     if (source == null) return;
     try {
@@ -169,16 +170,16 @@ class _EditEventScreenState extends State<EditEventScreen> {
       });
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to pick image: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to pick image: $e')));
     }
   }
 
   void _removeImageNow() {
     setState(() {
-  _imageBase64 = null;
-  _removeImage = true;
+      _imageBase64 = null;
+      _removeImage = true;
     });
   }
 
@@ -195,58 +196,61 @@ class _EditEventScreenState extends State<EditEventScreen> {
             padding: const EdgeInsets.all(16),
             child: Form(
               key: _formKey,
-              child: isLandscape
-                  ? Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if (_imageBase64 != null && _imageBase64!.isNotEmpty)
-                          Expanded(
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(12),
-                              child: AspectRatio(
-                                aspectRatio: 1,
-                                child: Image.memory(
-                                  const Base64Decoder().convert(_imageBase64!),
-                                  fit: BoxFit.cover,
+              child:
+                  isLandscape
+                      ? Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (_imageBase64 != null && _imageBase64!.isNotEmpty)
+                            Expanded(
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(12),
+                                child: AspectRatio(
+                                  aspectRatio: 1,
+                                  child: Image.memory(
+                                    const Base64Decoder().convert(
+                                      _imageBase64!,
+                                    ),
+                                    fit: BoxFit.cover,
+                                  ),
                                 ),
                               ),
                             ),
+                          if (_imageBase64 != null && _imageBase64!.isNotEmpty)
+                            const SizedBox(width: 16),
+                          Expanded(
+                            flex: 2,
+                            child: _EventFormFields(
+                              titleCtrl: _titleCtrl,
+                              descCtrl: _descCtrl,
+                              locCtrl: _locCtrl,
+                              start: _start,
+                              end: _end,
+                              onPickStart: _pickStart,
+                              onPickEnd: _pickEnd,
+                              onSave: _save,
+                              saving: _saving,
+                              online: _online,
+                              scheme: scheme,
+                              fmt: _fmt,
+                            ),
                           ),
-                        if (_imageBase64 != null && _imageBase64!.isNotEmpty)
-                          const SizedBox(width: 16),
-                        Expanded(
-                          flex: 2,
-                          child: _EventFormFields(
-                            titleCtrl: _titleCtrl,
-                            descCtrl: _descCtrl,
-                            locCtrl: _locCtrl,
-                            start: _start,
-                            end: _end,
-                            onPickStart: _pickStart,
-                            onPickEnd: _pickEnd,
-                            onSave: _save,
-                            saving: _saving,
-                            online: _online,
-                            scheme: scheme,
-                            fmt: _fmt,
-                          ),
-                        ),
-                      ],
-                    )
-                  : _EventFormFields(
-                      titleCtrl: _titleCtrl,
-                      descCtrl: _descCtrl,
-                      locCtrl: _locCtrl,
-                      start: _start,
-                      end: _end,
-                      onPickStart: _pickStart,
-                      onPickEnd: _pickEnd,
-                      onSave: _save,
-                      saving: _saving,
-                      online: _online,
-                      scheme: scheme,
-                      fmt: _fmt,
-                    ),
+                        ],
+                      )
+                      : _EventFormFields(
+                        titleCtrl: _titleCtrl,
+                        descCtrl: _descCtrl,
+                        locCtrl: _locCtrl,
+                        start: _start,
+                        end: _end,
+                        onPickStart: _pickStart,
+                        onPickEnd: _pickEnd,
+                        onSave: _save,
+                        saving: _saving,
+                        online: _online,
+                        scheme: scheme,
+                        fmt: _fmt,
+                      ),
             ),
           ),
           if (_saving)

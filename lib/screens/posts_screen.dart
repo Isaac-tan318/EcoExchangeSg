@@ -36,8 +36,8 @@ class _PostsScreenState extends State<PostsScreen> {
   }
 
   String _fmt(DateTime d) {
-  // use intl for locale-aware date formatting (e.g., 1 January 2025)
-  return DateFormat('d MMMM y').format(d);
+    // use intl for locale-aware date formatting (e.g., 1 January 2025)
+    return DateFormat('d MMMM y').format(d);
   }
 
   String _timeLabel() {

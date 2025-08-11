@@ -40,7 +40,7 @@ class _EditPostState extends State<EditPost> {
     _descCtrl = TextEditingController(
       text: widget.initial.description?.toString() ?? '',
     );
-  _imageBase64 = widget.initial.imageBase64;
+    _imageBase64 = widget.initial.imageBase64;
     // subscribe to connectivity for offline mode handling
     GetIt.instance<ConnectivityService>().isOnline$.listen((isOnline) {
       if (!mounted) return;
@@ -105,24 +105,25 @@ class _EditPostState extends State<EditPost> {
     }
     final source = await showModalBottomSheet<ImageSource>(
       context: context,
-      builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.photo_camera),
-              title: const Text('Camera'),
-              onTap: () => Navigator.pop(ctx, ImageSource.camera),
+      builder:
+          (ctx) => SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.photo_camera),
+                  title: const Text('Camera'),
+                  onTap: () => Navigator.pop(ctx, ImageSource.camera),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.photo_library),
+                  title: const Text('Gallery'),
+                  onTap: () => Navigator.pop(ctx, ImageSource.gallery),
+                ),
+                const SizedBox(height: 8),
+              ],
             ),
-            ListTile(
-              leading: const Icon(Icons.photo_library),
-              title: const Text('Gallery'),
-              onTap: () => Navigator.pop(ctx, ImageSource.gallery),
-            ),
-            const SizedBox(height: 8),
-          ],
-        ),
-      ),
+          ),
     );
     if (source == null) return;
     try {
@@ -195,62 +196,62 @@ class _EditPostState extends State<EditPost> {
           SafeArea(
             child: LayoutBuilder(
               builder: (context, constraints) {
-      // load working image if exists
-      final imageWidget =
-        (_imageBase64 != null && _imageBase64!.isNotEmpty)
-                    ? ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
-                      child: AspectRatio(
-                        // square aspect ratio
-                        aspectRatio: 1,
-                        child: Image.memory(
-                          const Base64Decoder().convert(
-              _imageBase64!,
-                          ),
-                          fit: BoxFit.cover,
-                        ),
-                      ),
-                    )
-                    : const SizedBox.shrink();
-
-            return SingleChildScrollView(
-              padding: const EdgeInsets.only(bottom: 40),
-              child: ConstrainedBox(
-                constraints: BoxConstraints(minHeight: constraints.maxHeight),
-                child:
-                // responsive layout
-                    isLandscape
-                        ? Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // display image and margin if it exists
-                            if (_imageBase64 != null &&
-                                _imageBase64!.isNotEmpty)
-                              Expanded(child: imageWidget),
-                            if (_imageBase64 != null &&
-                                _imageBase64!.isNotEmpty)
-                              const SizedBox(width: 16),
-                            Expanded(
-                              flex: 2,
-                              // fields
-                              child: PostForm(
-                                formKey: _formKey,
-                                titleController: _titleCtrl,
-                                descriptionController: _descCtrl,
-                                imageBase64: _imageBase64,
-                                showImage: false,
-                              ),
+                // load working image if exists
+                final imageWidget =
+                    (_imageBase64 != null && _imageBase64!.isNotEmpty)
+                        ? ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: AspectRatio(
+                            // square aspect ratio
+                            aspectRatio: 1,
+                            child: Image.memory(
+                              const Base64Decoder().convert(_imageBase64!),
+                              fit: BoxFit.cover,
                             ),
-                          ],
+                          ),
                         )
-                        : PostForm(
-                          formKey: _formKey,
-                          titleController: _titleCtrl,
-                          descriptionController: _descCtrl,
-                          imageBase64: _imageBase64,
-                        ),
-              ),
-            );
+                        : const SizedBox.shrink();
+
+                return SingleChildScrollView(
+                  padding: const EdgeInsets.only(bottom: 40),
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      minHeight: constraints.maxHeight,
+                    ),
+                    child:
+                        // responsive layout
+                        isLandscape
+                            ? Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // display image and margin if it exists
+                                if (_imageBase64 != null &&
+                                    _imageBase64!.isNotEmpty)
+                                  Expanded(child: imageWidget),
+                                if (_imageBase64 != null &&
+                                    _imageBase64!.isNotEmpty)
+                                  const SizedBox(width: 16),
+                                Expanded(
+                                  flex: 2,
+                                  // fields
+                                  child: PostForm(
+                                    formKey: _formKey,
+                                    titleController: _titleCtrl,
+                                    descriptionController: _descCtrl,
+                                    imageBase64: _imageBase64,
+                                    showImage: false,
+                                  ),
+                                ),
+                              ],
+                            )
+                            : PostForm(
+                              formKey: _formKey,
+                              titleController: _titleCtrl,
+                              descriptionController: _descCtrl,
+                              imageBase64: _imageBase64,
+                            ),
+                  ),
+                );
               },
             ),
           ),
@@ -260,9 +261,7 @@ class _EditPostState extends State<EditPost> {
                 absorbing: true,
                 child: Container(
                   color: Colors.black45,
-                  child: const Center(
-                    child: CircularProgressIndicator(),
-                  ),
+                  child: const Center(child: CircularProgressIndicator()),
                 ),
               ),
             ),

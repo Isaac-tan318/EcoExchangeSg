@@ -40,13 +40,9 @@ void main() async {
   }
   getIt.registerLazySingleton<FirebaseService>(() => FirebaseService());
 
-  getIt.registerLazySingleton<ConnectivityService>(
-    () => ConnectivityService(),
-  );
+  getIt.registerLazySingleton<ConnectivityService>(() => ConnectivityService());
   getIt.registerLazySingleton<TtsService>(() => TtsService());
-  getIt.registerLazySingleton<NotificationService>(
-    () => NotificationService(),
-  );
+  getIt.registerLazySingleton<NotificationService>(() => NotificationService());
   // theme service for light/dark and seed color
   getIt.registerSingleton<ThemeService>(ThemeService());
   await getIt<ThemeService>().load();

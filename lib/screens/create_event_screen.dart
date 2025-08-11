@@ -441,6 +441,7 @@ class _CreateEventScreenState extends State<CreateEventScreen> {
     }
   }
 
+// send to firebase
   Future<void> _submit() async {
     if (!_online) {
       ScaffoldMessenger.of(context).showSnackBar(
